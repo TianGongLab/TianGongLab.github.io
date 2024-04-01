@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[2634],{30192:(e,t,n)=>{n.r(t),n.d(t,{default:()=>c});var s=n(74848);function c(){return(0,s.jsx)("script",{type:"text/javascript",dangerouslySetInnerHTML:{__html:"(function () { window.open('/blog', '_self'); })();"}})}}}]);
