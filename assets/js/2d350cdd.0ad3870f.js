@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[2334],{53429:s=>{s.exports=JSON.parse('{"label":"RouterOS","permalink":"/blog/tags/router-os","allTagsPath":"/blog/tags","count":1,"unlisted":false}')}}]);
