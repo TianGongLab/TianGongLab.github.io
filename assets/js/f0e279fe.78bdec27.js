@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[5043],{59101:s=>{s.exports=JSON.parse('{"label":"WebAssembly","permalink":"/blog/tags/web-assembly","allTagsPath":"/blog/tags","count":1,"unlisted":false}')}}]);

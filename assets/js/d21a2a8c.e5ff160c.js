@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[8391],{25217:s=>{s.exports=JSON.parse('{"label":"FortiGate","permalink":"/blog/tags/forti-gate","allTagsPath":"/blog/tags","count":1,"unlisted":false}')}}]);

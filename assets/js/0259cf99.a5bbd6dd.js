@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[4782],{49717:e=>{e.exports=JSON.parse('{"label":"Kernel","permalink":"/blog/tags/kernel","allTagsPath":"/blog/tags","count":1,"unlisted":false}')}}]);

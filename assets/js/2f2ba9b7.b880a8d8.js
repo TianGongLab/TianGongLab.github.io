@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[6900],{30014:a=>{a.exports=JSON.parse('{"label":"GoAhead","permalink":"/blog/tags/go-ahead","allTagsPath":"/blog/tags","count":1,"unlisted":false}')}}]);
