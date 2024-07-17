@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkpoc_docs=self.webpackChunkpoc_docs||[]).push([[1072],{55084:t=>{t.exports=JSON.parse('{"tag":{"label":"Rust","permalink":"/blog/tags/rust","allTagsPath":"/blog/tags","count":1,"unlisted":false},"listMetadata":{"permalink":"/blog/tags/rust","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
