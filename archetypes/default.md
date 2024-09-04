@@ -1,11 +1,8 @@
 ---
-title: "{{ replace .Name "-" " " | title }}"
-date: {{ .Date }}
 slug: tiangongarticle
-draft: false
+date: {{ .Date }}
+title: "{{ replace .Name "-" " " | title }}"
 author: 
-author_pic: /authors/
-author_desc: 
 tags: []
 ---
 
