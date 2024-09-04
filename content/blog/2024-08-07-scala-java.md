@@ -3,8 +3,6 @@ slug: tiangongarticle042
 date: 2024-08-07
 title: Scala代码审计之痛 -- Scala与Java的爱恨情仇
 author: falc0n_leo
-avatar: /authors/falc0n_leo.jpg
-info: 天工实验室非著名安全研究员、金融圈韭菜、互联网民工、垃圾话爱好者、老实人本人，研究领域：代码审计、Web安全。
 tags: [Scala, Java]
 ---
 

@@ -1,0 +1,54 @@
+lm0963:
+  name: lm0963
+  avatar: /authors/lm0963.jpg
+  title: 微软 MSRC 全球最具价值安全精英榜上榜者
+
+hongzhenhao:
+  name: hongzhenhao
+  avatar: /authors/hongzhenhao.jpg
+  title: 微软 MSRC 全球最具价值安全精英榜上榜者、BlackHat USA 世界黑帽大会 Speaker
+
+mimi:
+  name: 米米
+  avatar: /authors/mimi.jpg
+  title: 清华大学网络研究院本科在读，专注于Windows内核安全领域
+
+wangyao04:
+  name: wangyao04
+  avatar: /authors/wangyao.jpg
+  title: Datacon 2021~2023 出题人，GeekPwn 2019 参赛选手
+
+ink:
+  name: ink
+  avatar: /authors/ink.jpg
+  title: 专注于代码审计、漏洞挖掘及免杀对抗领域
+
+wanghaozhe:
+  name: pwnht
+  avatar: /authors/pwnht.jpg
+  title: 天工实验室安全研究员，主攻利用二进制静态分析方法挖掘漏洞
+
+falc0n_leo:
+  name: falc0n_leo
+  avatar: /authors/falc0n_leo.jpg
+  title: 天工实验室非著名安全研究员、金融圈韭菜、互联网民工、垃圾话爱好者、老实人本人，研究领域：代码审计、Web安全。
+
+l1nk:
+  name: l1nk
+  avatar: /authors/l1nk.jpg
+  title: Datacon 2023 出题人，主攻二进制漏洞挖掘
+
+crumbledwall:
+  name: crumbledwall
+  avatar: /authors/crumbledwall.jpg
+  title: 天工实验室安全研究员，研究领域：Web安全、静态分析。
+
+4uuu:
+  name: 4uuu Nya
+  avatar: /authors/4uuu.png
+  title: 天工实验室安全研究员，Nu1L Team，Web安全与代码审计
+
+b4tm4n:
+  name: b4tm4n
+  avatar: /authors/b4tm4n.jpg
+  title: 二进制程序分析、模糊测试

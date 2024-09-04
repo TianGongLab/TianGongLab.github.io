@@ -3,8 +3,6 @@ slug: tiangongarticle040
 date: 2024-07-24
 title: JDBC Attack 与高版本 JDK 下的 JNDI Bypass
 author: crumbledwall
-avatar: /authors/crumbledwall.jpg
-info: 天工实验室安全研究员，研究领域：Web安全、静态分析。
 tags: [Java, JDBC, JNDI]
 ---
 

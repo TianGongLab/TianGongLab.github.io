@@ -3,8 +3,6 @@ slug: tiangongarticle002
 date: 2023-10-25
 title: Microsoft Hyper-V 虚拟 TPM 设备漏洞分析
 author: hongzhenhao
-avatar: /authors/hongzhenhao.jpg
-info: 微软 MSRC 全球最具价值安全精英榜上榜者、BlackHat USA 世界黑帽大会 Speaker
 tags: [Microsoft, Hyper-V, TPM]
 ---
 

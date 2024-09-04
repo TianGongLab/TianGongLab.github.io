@@ -29,15 +29,18 @@
     {{- end }}
   </header>
 
-  <div class="author">
-    <div class="author_avatar">
-      <img src="{{ .Params.avatar}}" alt="{{ .Params.author }}">
+  {{ $authorKey := .Params.author }}
+  {{ with index site.Data.authors $authorKey }}
+    <div class="author">
+      <div class="author_avatar">
+        <img src="{{ .avatar}}" alt="{{ .name }}">
+      </div>
+      <div class="author_info">
+        <span class="author_id">{{ .name }}</span>
+        <p class="author_description">{{ .title }}</p>
+      </div>
     </div>
-    <div class="author_info">
-      <span class="author_id">{{ .Params.author }}</span>
-      <p class="author_description">{{ .Params.info }}</p>
-    </div>
-  </div>
+  {{end}}
 
   {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
     <ul class="post-tags">

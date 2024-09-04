@@ -3,8 +3,6 @@ slug: tiangongarticle004
 date: 2023-11-03
 title: 伪随机数问题浅析
 author: wangyao04
-avatar: /authors/wangyao.jpg
-info: Datacon 2021~2023 出题人，GeekPwn 2019 参赛选手
 tags: [Cryptography]
 ---
 

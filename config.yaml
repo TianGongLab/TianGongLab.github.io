@@ -52,3 +52,8 @@ params:
     text: "天工实验室"
     icon: /logo/logo3.png
     iconHeight: 100
+
+  assets:
+    favicon: /logo/favicon.ico
+    favicon16x16: /logo/favicon.ico
+    favicon32x32: /logo/favicon.ico

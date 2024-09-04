@@ -3,8 +3,6 @@ slug: tiangongarticle043
 date: 2024-08-21
 title: 深入解析Windows VTL机制 & IUM进程
 author: hongzhenhao
-avatar: /authors/hongzhenhao.jpg
-info: 微软 MSRC 全球最具价值安全精英榜上榜者、BlackHat USA 世界黑帽大会 Speaker
 tags: [Windows, Virtual Trust Levels, VTL, Isolated User Mode, IUM]
 ---
 

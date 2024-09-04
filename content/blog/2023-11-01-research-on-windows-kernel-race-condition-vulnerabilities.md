@@ -2,9 +2,7 @@
 slug: tiangongarticle003
 date: 2023-11-01
 title: Windows内核竞态条件漏洞研究
-author: 米米
-avatar: /authors/mimi.jpg
-info: 清华大学网络研究院本科在读，专注于Windows内核安全领域
+author: mimi
 tags: [Microsoft, Windows, Race Condition]
 ---
 

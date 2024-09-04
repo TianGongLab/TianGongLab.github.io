@@ -2,9 +2,7 @@
 slug: tiangongarticle038
 date: 2024-07-10    
 title: Python Web 内存马多框架植入技术详解
-author: 4uuu Nya
-avatar: /authors/4uuu.png
-info: 天工实验室安全研究员，Nu1L Team，Web安全与代码审计
+author: 4uuu
 tags: [Python, Web, 内存马]
 ---
 

@@ -3,8 +3,6 @@ slug: tiangongarticle005
 date: 2023-11-08
 title: WAF防护绕过技巧分析
 author: ink
-avatar: /authors/ink.jpg
-info: 专注于代码审计、漏洞挖掘及免杀对抗领域
 tags: [WAF]
 ---
 
