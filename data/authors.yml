@@ -52,3 +52,93 @@ b4tm4n:
   name: b4tm4n
   avatar: /authors/b4tm4n.jpg
   title: 二进制程序分析、模糊测试
+
+fmyy:
+  name: fmyy
+  avatar: /authors/fmyy.jpg
+  title: 天工实验室安全研究员，专注于macOS安全、IoT安全
+
+mmuz:
+  name: Mmuz
+  avatar: /authors/Mmuz.jpg
+  title: 天工实验室安全研究员,专注于代码审计、Web安全
+
+clingcling:
+  name: clingcling
+  avatar: /authors/clingcling.png
+  title: 天工实验室安全研究员,专注于Linux内核漏洞挖掘与利用
+
+lime:
+  name: Lime
+  avatar: /authors/Lime.jpg
+  title: 天工实验室安全研究员、专注于浏览器漏洞挖掘与利用
+
+mg1937:
+  name: MG193_7
+  avatar: /authors/MG1937.png
+  title: 天工实验室安全研究员，BlackHat ASIA 2024 Speaker。擅长分析恶意软件，熟悉 Android 系统，目前专注于 AOSP 和移动安全研究。
+
+p0melo:
+  name: p0melo
+  avatar: /authors/p0melo.jpg
+  title: 天工实验室安全研究员、专注于Web安全与代码审计
+
+OneShell:
+  name: OneShell
+  avatar: /authors/OneShell.jpg
+  title: 天工实验室安全研究员
+
+dri3dfi5h:
+  name: dri3dfi5h
+  avatar: /authors/dri3dfi5h.jpg
+  title: 天工实验室安全研究员
+
+zbleet:
+  name: zbleet
+  avatar: /authors/zbleet.jpg
+  title: 二进制安全、IoT安全、浏览器安全
+
+ha1vk:
+  name: ha1vk
+  avatar: /authors/ha1vk.png
+  title: 二进制安全研究员，BlackHat USA 2022 WASM演讲者，专注IOT、硬件、内核等方面的研究
+
+w00d:
+  name: w00d
+  avatar: /authors/Wood1314.png
+  title: Asuri 战队队长，信息安全铁人三项赛一等奖，Datacon 2023 出题人
+
+m4yfly:
+  name: m4yfly
+  avatar: /authors/m4yfly.png
+  title: 天工实验室安全研究员，专注于代码审计、物联网安全。
+
+noir:
+  name: noir
+  avatar: /authors/noir.jpg
+  title: 在代码与防御之间寻找平衡，探索网络安全世界的无尽可能
+
+HuanGMz:
+  name: HuanGMz
+  avatar: /authors/HuanGMz.jpg
+  title: 天工实验室安全研究员
+
+p1kk:
+  name: p1kk
+  avatar: /authors/p1kk.png
+  title: 天工实验室安全研究员
+
+LoRexxar:
+  name: LoRexxar
+  avatar: /authors/LoRexxar.png
+  title: Vidar-Team，KunLun-M 作者
+
+yyhy:
+  name: YYHY
+  avatar: /authors/YYHY.jpg
+  title: 天工实验室安全研究员
+
+zhz:
+  name: S1duku
+  avatar: /authors/S1duku.jpg
+  title: GeekCon2023 参赛选手
