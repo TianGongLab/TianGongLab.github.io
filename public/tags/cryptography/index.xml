@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Cryptography on 天工实验室</title>
+    <link>http://localhost:1313/tags/cryptography/</link>
+    <description>Recent content in Cryptography on 天工实验室</description>
+    <generator>Hugo -- 0.133.1</generator>
+    <language>zh</language>
+    <copyright>天工实验室</copyright>
+    <lastBuildDate>Fri, 03 Nov 2023 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/cryptography/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>伪随机数问题浅析</title>
+      <link>http://localhost:1313/blog/tiangongarticle004/</link>
+      <pubDate>Fri, 03 Nov 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tiangongarticle004/</guid>
+      <description>伪随机数问题浅析 0x01 前言 随机数在许多科学和工程领域扮演着重要角色，尤其在计算机科学和信息安全领域，它的重要意义更是不可小觑。在这个全球数字化的时代，数据是我们经济和生活的核心，数据的安全和保密显得尤为重要。我们使用密码保护我们的银行账户、电子邮件、社交媒体账户，我们使用加密技术保护我们通信的隐私性。在这些过程中，随机数是其中最重要的一部分，它用于密码生成、数据加密、身份验证和网络协议安全，是保证电子交流安全的令牌。如果我们不能保证所生成的随机数实际上是随机的，那么它们就可能被预测，这将让我们面临安全风险。因此，在探讨随机数的同时，我们须深化理解随机性的安全性，以便更有效地使用随机数，保护自身和数据免受攻击。
+本次分享的两个案例（CVE-2023-42820和CVE-2022-35890）均是由于随机数使用不当从而导致了更加严重的安全问题。
+0x02 随机数相关基础知识 根据密码学原理，随机数的随机性检验可以分为三个标准：
+统计学伪随机性：在给定的随机比特流样本中，1的数量大致等于0的数量，满足这类要求的数字在人类“一眼看上去”是随机的 密码学安全伪随机性：给定随机样本的一部分和随机算法，不能有效的演算出随机样本的剩余部分 真随机性：随机样本不可重现 相应的，随机数也分为三类：
+伪随机数：满足第一个条件的随机数
+密码学安全的伪随机数：同时满足前两个条件的随机数，可以通过密码学安全伪随机数生成器计算得出
+真随机数：同时满足三个条件的随机数
+密码学安全伪随机数生成器（CSPRNG） 相较于统计学伪随机数生成器和更弱的伪随机数生成器，CSPRNG所生成的密码学安全伪随机数具有额外的伪随机属性，简单来说CSPRNG本质上属于一种单向函数
+这是一个使用python random库生成随机数的例子
+&amp;gt;&amp;gt;&amp;gt; import random &amp;gt;&amp;gt;&amp;gt; random.seed(123) &amp;gt;&amp;gt;&amp;gt; random.random() 0.052363598850944326 &amp;gt;&amp;gt;&amp;gt; random.random() 0.08718667752263232 &amp;gt;&amp;gt;&amp;gt; random.seed(123) &amp;gt;&amp;gt;&amp;gt; random.random() 0.052363598850944326 &amp;gt;&amp;gt;&amp;gt; random.random() 0.08718667752263232 &amp;gt;&amp;gt;&amp;gt; random.random() 0.4072417636703983 &amp;gt;&amp;gt;&amp;gt; random.seed(123) &amp;gt;&amp;gt;&amp;gt; random.random() 0.052363598850944326 对于随机数的使用，一般是先播种，然后使用rand来获取随机数。不播种会使用默认的种子，不同的语言不通版本种子可能不一样。这种通过rand出来的随机数，就是伪随机数，只要种子固定那么每次生成的随机数序列就会一样，同时通过上面的例子，可以发现以下特点：
+在播种后会重置随机序列
+random.seed()进行播种时并没有产生新的对象，就会对后面的random产生影响，那么推断播种后种子对播种时的整个进程生效
+对于Java这种有新对象生成的语言来说，如果每次都是调用的同一个对象，那么与上面的情况一致，播种后会对这个对象后面生成的随机数产生影响 public class A{ public Random random; public void init(){ long seed = 123456L; this.random = new Random(seed); } public static void main(){ this.</description>
+    </item>
+  </channel>
+</rss>

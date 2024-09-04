@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>WAF | 天工实验室</title>
+<meta name="keywords" content="">
+<meta name="description" content="奇安信天工实验室｜互联网基础设施漏洞挖掘">
+<meta name="author" content="奇安信天工实验室">
+<link rel="canonical" href="http://localhost:1313/tags/waf/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.9b0c42f9222bc665b5845e6199fc07fd87b025125d3366cc5f873b0f54ca8481.css" integrity="sha256-mwxC&#43;SIrxmW1hF5hmfwH/YewJRJdM2bMX4c7D1TKhIE=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/tags/waf/index.xml">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/tags/waf/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="list dark" id="top">
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="天工实验室 (Alt + H)">
+                <img src="http://localhost:1313/logo/logo3.png" alt="" aria-label="logo"
+                    height="100" style="margin-top: 15px;">
+            </a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://poc.qianxin.com/home" title="破壳官网">
+                    <span>破壳官网</span>&nbsp;
+                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14L21 3"></path>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/tags/">标签</a></div>
+  <h1>
+    WAF
+    <a href="/tags/waf/index.xml" title="RSS" aria-label="RSS">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" height="23">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    </a>
+  </h1>
+</header>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">WAF防护绕过技巧分析
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>WAF防护绕过技巧分析 一、WAF介绍与分类 （一）WAF简介 Web应用防护系统（Web Application Firewall，网站应用级入侵防御系统），是通过执行一系列针对HTTP/HTTPS的安全策略来专门为Web应用提供保护的产品。
+市场上的WAF产品有很多，像腾讯云，阿里云，长亭等，目前世界上常年排名第一的是以色列的 Imperva。
+（二）WAF分类 规则实现 语义分析引擎WAF，国内大多数都是正则引擎，此外还有机器学习引擎。
+部署方式 网络层WAF、应用层WAF、云WAF
+WAF部署方式 WAF大多是串联在这个链路中，起到一个阻断作用。就比如在Web Server和CGI之间的WAF，CGI这里特指PHP和ASP，像JSP一般就统一tomcat中间件了，就不需要CGI层了。
+云部署一般先会起一个高防IP，然后用这个IP去连接WAF集群，一般来说都是从四层的流量解除七层的流量，然后再将正常的流量向后端转发，像这些企业A企业B可能在云上也可能不在。
+二、网络层WAF Bypass （一）分包分组 通过调整MSS控制分包 控制MSS去调整TCP分包的大小 单个TCP会话可能含有多个HTTP会话：比如TCP先建立一个三次握手，建立之后发送多个HTTP请求，并没有断开，一般的设备都会去很好的解析处理，但是有一些古老的设备只会去解析第一个，现在已经很少了。
+单个TCP包发送多组HTTP报文（Pipeline技巧以及HTTP请求走私）：就是在DATA部分写多个http请求，有的设备就会认为第一个正常，那么后面的就类似于body部分，就会出现解析错误。
+HTTP请求走私和Pipeline的区别就是请求走私利用不同的Content-Length引发歧义，比如下面这个，第一个content-length是包括了下面两个，或者content-length写一个1或者2，到底Web Server会取哪一个，需要针对不同的去研究，所以取值的解析差异，就会认为他是一整个或者是三个，利用这种方式就可以去迷惑WAF。
+在标准的HTTP走私里面，一般content-length和Transfer-Encoding只会采纳一个，大部分优先是 Transfer-Encoding: chunked，当然也有一些两个都支持，就会出现一些问题。
+chunked 利用chunked切分，比如下面是个最简单的chunked，对关键字进行一个拆分。
+这里的5,4,3是以16进制写的，最后以0来结尾，如果是10个字符的话就要写A。
+这种是只针对于网络层，应用层就不会出现这种问题，因为应用层是在完成chunked组包之后，才去解析，所以对应用层无效。
+三、应用层WAF Bypass （一）multipart/form-data 理论知识 HTTP协议POST请求，除了常规的application/x-www-form-urlencoded以外，还有multipart/form-data这种形式，主要是为了解决上传文件场景下文件内容较大且内置字符不可控的问题。multipart/form-data格式也是可以传递POST参数的。对于Nginx&#43;PHP的架构，Nginx实际上是不负责
+解析multipart/form-data的body部分的，而是交由PHP来解析，因此WAF所获取的内容就很有可能与后端的PHP发生不一致。
+使用以下脚本来进行测试
+&lt;?php echo file_get_contents(&#34;php://input&#34;); var_dump($_POST); var_dump($_FILES); ?&gt; 正常POST请求如下：
+change body encoding，如下：
+只有input不太一样，一个有f=1一个没有，参数并没有进入Files数组，而是进入了_POST数据。那么，何时是上传文件？何时是POST参数呢？这个关键点在于有没有一个完整的filename=。这9个字符是经过反复测试的，缺一个字符不可，替换一个字符也不可，在其中添加一个字符更不可。
+加上filename=之后：
+可以看到这次并没有传给POST数组，而是传给了FILES数组变成了一个文件。
+Bypass WAF的核心思想在于，一些WAF产品处于降低误报考虑，对用户上传文件的内容不做匹配，直接放行，比如一些压缩包图片之类的，在二进制流下面任意字符是不可控的，所以里面出现一些危险函数是很正常的。事实上，这些内容在绝大多数场景也无法引起攻击。所以让POST过去的数据去过那些规则，让FILES的只要符合白名单即可。
+但关键问题在于，WAF能否准确有效识别出哪些内容是传给POST数组的，哪些传给_FILES数组？如果不能，那我们是否就可以想办法让WAF以为我们是在上传文件，而实际上却是在POST一个参数，这个参数可以是命令注入、SQL注入、SSRF等任意的一种攻击，这样就实现了通用WAF Bypass。
+基础案例 0x00截断filename 截断之后发现传给了POST数组
+有的WAF在处理包之前会将00删掉，再去解析会产生差异，所以有的地方00是不能删的，所以会产生bypass
+双写上传描述行 双写后，一些WAF会取第二行，而实际PHP会获取第一行
+双写整个part开头部分 可以看到取的还是第一行，只不过会将第二部分全部当成f的值，这里做SQL注入比较麻烦，需要将前面全都闭合掉，但是命令注入就很简单，直接将1给改成payload即可优先执行。
+这里可以延伸出构造一个假的part
+构造假的part 和上一个类似，少了一个换行，这样原本干扰的部分就不会取了
+双写boundary 可以看到是以a为主...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-11-08 00:00:00 +0000 UTC'>2023年11月08日</span>&nbsp;·&nbsp;1 分钟&nbsp;·&nbsp;ink</footer>
+  <a class="entry-link" aria-label="post link to WAF防护绕过技巧分析" href="http://localhost:1313/blog/tiangongarticle005/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© <a href="https://poc.qianxin.com/home">天工实验室</a></span>
+        
+
+    
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+</body>
+
+</html>

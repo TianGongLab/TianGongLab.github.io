@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>Microsoft | 天工实验室</title>
+<meta name="keywords" content="">
+<meta name="description" content="奇安信天工实验室｜互联网基础设施漏洞挖掘">
+<meta name="author" content="奇安信天工实验室">
+<link rel="canonical" href="http://localhost:1313/tags/microsoft/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.9b0c42f9222bc665b5845e6199fc07fd87b025125d3366cc5f873b0f54ca8481.css" integrity="sha256-mwxC&#43;SIrxmW1hF5hmfwH/YewJRJdM2bMX4c7D1TKhIE=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/tags/microsoft/index.xml">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/tags/microsoft/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="list dark" id="top">
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="天工实验室 (Alt + H)">
+                <img src="http://localhost:1313/logo/logo3.png" alt="" aria-label="logo"
+                    height="100" style="margin-top: 15px;">
+            </a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://poc.qianxin.com/home" title="破壳官网">
+                    <span>破壳官网</span>&nbsp;
+                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14L21 3"></path>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/tags/">标签</a></div>
+  <h1>
+    Microsoft
+    <a href="/tags/microsoft/index.xml" title="RSS" aria-label="RSS">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" height="23">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    </a>
+  </h1>
+</header>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Windows内核竞态条件漏洞研究
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Windows内核竞态条件漏洞研究 一、研究背景 （一）操作系统内核漏洞 操作系统是计算机系统的核心软件，其主要功能在于管理计算机系统中的各种软硬件资源，并为计算机用户和用户程序提供访问这些资源的统一抽象。为达到这一设计目标，操作系统内核通常运行在称为内核态的高特权级执行环境中。一旦操作系统内核被恶意攻击者非法侵入，攻击者便可立即拥有对整个计算机系统的控制权，造成极大危害。因此，针对操作系统内核的漏洞挖掘一直是学术界和工业界的研究重点。
+Windows操作系统是桌面计算机领域最广泛应用的操作系统之一，在网络空间中扮演着至关重要的角色。与之对应的，Windows操作系统中存在的安全漏洞也往往具有广泛的影响和严重的潜在危害。攻击者可以利用这些漏洞来进行大规模的网络攻击，给网络安全带来严重的威胁。例如，在2017年流行的WannaCry勒索病毒攻击，就是利用了MS17-010“永恒之蓝”漏洞，其受害者遍布全球多国，造成了巨大的损失。
+在Linux操作系统上，以Syzkaller为代表的模糊测试工具可以7x24小时不间断地对内核进行漏洞挖掘，并自动化地生成漏洞报告供维护者查阅。然而，在Windows操作系统上，还没有出现影响力和测试效果能够比拟Syzkaller的开源工具。造成这一差异的原因是多方面的，例如，研究人员可以通过对Linux源码进行静态分析得到供Syzkaller使用的Syzlang模版，其中包含对系统调用接口的完整描述，由此可以驱动模糊测试。但在Windows上，由于内核是闭源的，对其系统调用接口的分析过程更为复杂和困难。
+通过分析近年来披露的Windows内核态漏洞，我们发现，这些漏洞大多是由独立的研究人员或安全研究团队发现，并且极大地依赖于专家知识，只在特定的情况下使用了模糊测试等自动化方法来辅助漏洞挖掘。奇安信天工实验室近年来在Hyper-V中发现的漏洞，也同样离不开安全研究员对Hyper-V整体架构和漏洞模式的深入理解。
+有鉴于此，笔者也针对近年来披露的Windows内核态漏洞进行了人工的分析和研究，并主要聚焦于竞态条件这一漏洞类型。本文便是对相关研究发现的总结。
+（二）竞态条件漏洞 竞态条件是计算机科学中的一个重要概念，它指的是在多线程或多进程环境中，由于不恰当的同步操作或竞争资源的访问而导致的不确定性行为。在现代操作系统中，多线程的程序调度是至关重要的一项任务，它直接影响了计算机系统的性能和资源利用效率。多线程编程允许程序同时执行多个任务，从而提高了系统的响应速度和并发处理能力。然而，为了有效地管理这些线程，操作系统必须具备高效的调度机制，决定哪个线程获得CPU时间片，以确保各个线程能够合理地分享计算资源。这一调度决策是基于一系列算法和策略进行的，涉及到线程的优先级、状态管理、抢占机制以及资源争用解决等多个方面。
+这一调度机制也导致多个线程或进程在争夺资源的同时，执行顺序并不确定，因此可能会产生意想不到的结果。为了避免问题，多线程场景下对关键资源的访问需要利用加锁、同步等机制来保证安全。倘若多个线程同时访问共享变量或资源，而没有适当的同步机制来保护这些资源，这可能导致数据损坏、程序崩溃或不一致的结果，从而带来严重的安全和可靠性问题。
+图1：典型的竞态条件成因，两个线程无保护地访问同一个内核对象
+如图1所示，漏洞CVE-2022-29142的原因正是两个线程可以同时访问同一个内核对象，如果其中一个线程试图关闭该对象的句柄，另一个线程便可能访问已被释放的指针。
+本文将会具体介绍竞态条件漏洞带来的潜在风险，并描述复现真实存在于Windows内核中的竞态条件漏洞时的发现。
+二、漏洞分析采用的关键技术 在进行针对Windows内核的漏洞分析和研究时，主要采用的关键技术包括：补丁对比分析、二进制逆向分析、竞态条件构建和调试等。
+（一）补丁对比及二进制逆向分析 通过在CVE数据库中的检索，发现近年来披露的Windows内核漏洞中不乏用户提权和任意代码执行等高危漏洞。然而，由于微软积极控制漏洞的影响，相关漏洞的公开PoC程序数量相对较少。对于那些没有公开PoC的漏洞，往往只能获得漏洞发现者通过博客或社交媒体透露的少量信息，难以由此开展系统性的漏洞研究。考虑到这些漏洞的修复补丁存在于Windows安全更新中，通过对补丁进行分析，包括进行补丁的解包和二进制对比等，能够有效地从中提取出更新内容，识别受影响的模块，并可以进一步地从中提取关键的补丁点，由此分析补丁所修复的漏洞。
+为了能够解析微软的Windows安全补丁，首先需要了解补丁的格式以及获取方法。打包补丁的文件格式包括：.MSU（Microsoft Standalone Update）和.CAB（Cabinet）格式。补丁一般会作为 Windows 更新的一部分自动分发到用户设备上，但也可以直接从微软的更新目录中下载独立的补丁。此前，微软主要提供顺序的更新包，它们必须依次安装到用户的系统中。如今，更新以累积的方式提供，这意味着基本系统版本中的所有必需更新都包含在补丁包中，这也允许用户平滑地升级系统版本。此外，出于节省带宽等考虑，许多更新以增量的方式分发，即：更新包中只包含对特定二进制目标的修补方式，而不包含全部的文件。这也进一步增加了补丁分析的难度。
+对于每次安全更新，具体的补丁文件可以从Microsoft Update Catalog上获取。.MSU格式的补丁在使用expand.exe程序解包后，将能够获得.CAB格式的补丁文件，且这些文件按照指令集和二进制差异类型进行命名。对于补丁内容的进一步提取，将依赖于微软提供的msdelta.dll库。该库中提供了ApplyDelta系列函数用于执行Windows系统更新。通过C或Python语言调用相关库函数，即可实现打补丁的过程，获得补丁之后的二进制文件。
+图2：漏洞CVE-2023-21537补丁对比
+最后，通过BinDiff或Diaphora等二进制对比工具，即可完成对补丁内容的分析，并由此定位到漏洞点。如图2所示，以漏洞CVE-2023-21537为例，通过对比分析补丁前后的函数控制流图，可以发现补丁新增了参数检查的分支（见红色框）。在确定可能的漏洞点后，即可开展人工的逆向分析。
+（二）Windows内核调试 在成功确定漏洞点后，下一步是构造PoC程序，并触发漏洞行为，例如使内核出现崩溃，造成蓝屏死机（Blue Screen of Death）。再此基础上，可以进一步构造漏洞利用的方式，例如，利用释放后使用（Use after free）漏洞来覆盖关键的内核数据结构，实现进程提权的效果。
+为了触发内核中的漏洞代码的执行，需要构造用户态程序执行系统调用或驱动程序的IoControl调用。这些函数调用往往需要大量的参数，并且，参数需要满足一定的约束条件。在实际的测试中，发现通过人工构造的参数难以一次性通过检查，必须不断进行调试并修改PoC程序。
+微软提供了WinDbg程序用于支持Windows内核调试，但由于在内核函数中触发断点等操作会中断整个系统的执行，因而必须在另一台计算机上运行WinDbg，并通过TCP连接至待调试的计算机。在实际的实验中，相关的内核调试借助Hyper-V虚拟机完成。经笔者测试，运行在Hyper-V虚拟机中的Windows系统开启内核调试模式并设置端口和密钥参数后，即可在Host上通过WinDbg程序开启TCP连接进行内核调试。
+三、典型漏洞分析 笔者总共分析和研究了10个近年来被披露并分配了CVE编号的Windows内核竞态条件安全漏洞，具体的漏洞编号、内核模块和漏洞类型情况如表1所示。下面将通过案例分析介绍其中的典型漏洞，以及对未来针对此类漏洞进行自动化挖掘的启发。
+CVE ID 内核模块 漏洞类型 CVE-2018-7249 secdrv.sys UAF CVE-2018-8410 ntoskrnl Double dereference CVE-2018-8611 ntoskrnl UAF CVE-2020-1015 UMPS UAF CVE-2021-26868 win32k UAF CVE-2021-40449 win32k UAF CVE-2021-41335 ntoskrnl OOB CVE-2022-29142 ntoskrnl UAF CVE-2023-21536 ETW UAF CVE-2023-21537 mqac....</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-11-01 00:00:00 +0000 UTC'>2023年11月01日</span>&nbsp;·&nbsp;1 分钟&nbsp;·&nbsp;米米</footer>
+  <a class="entry-link" aria-label="post link to Windows内核竞态条件漏洞研究" href="http://localhost:1313/blog/tiangongarticle003/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Microsoft Hyper-V 虚拟 TPM 设备漏洞分析
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Microsoft Hyper-V 虚拟 TPM 设备漏洞分析 一、漏洞描述 2023年10月微软发布的安全更新中，修复了2个由笔者报送的Hyper-V虚拟TPM设备漏洞。本次修复的Hyper-V虚拟TPM组件的漏洞可以通过远程访问虚拟机的方式触发漏洞，造成宿主机拒绝服务或者远程代码执行，对宿主机上的其他虚拟机或业务造成损失。
+二、背景介绍 Hyper-V的虚拟TPM组件旨在为虚拟机提供模拟的TPM设备，虚拟TPM设备可以为依赖TPM设备的服务或者操作系统（例如Windows 11）提供支持。
+漏洞位于vmsp.exe进程中的TpmEngUM.dll二进制文件中，本次介绍的两个虚拟TPM组件的漏洞就是位于TpmEngUM.dll这个二进制文件中。
+vmsp.exe进程与vmwp.exe进程相似，都是一个虚拟机实例启动一个进程。但是不同的是vmsp.exe进程是隔离用户模式(IUM)进程，也就是说vmsp.exe进程无法在windows用户态下被正常attach。所以在调试上，针对vmsp.exe进程的调试就需要额外的“手脚”，这里我们引用Quarkslab博客的文章（https://blog.quarkslab.com/debugging-windows-isolated-user-mode-ium-processes.html），感兴趣的读者可以去了解并实践下，这里不做讨论。
+三、环境搭建 虚拟TPM组件漏洞的触发需要在Hyper-V虚拟机设置中的“安全”设置中，勾选“启用受信任的平台模块”。
+四、漏洞分析CVE-2023-36717 该漏洞是一个拒绝服务漏洞，当这个漏洞被触发时会导致宿主机vmsp.exe进程进入死循环，并占用大量CPU计算资源。由于vmsp.exe进程是IUM进程，所以当漏洞被触发后，管理员无法从用户态结束掉这个进程，这种情况下除非重启宿主机操作系统否则计算资源一直无法被释放。
+这个漏洞位于TpmEngUM!TPM2_ECDH_KeyGen函数中。
+__int64 __fastcall TPM2_ECDH_KeyGen(unsigned int *a1, __int64 a2) { OBJECT *v3; // rax OBJECT *v4; // rsi unsigned int v5; // eax unsigned int v6; // ebx unsigned __int16 v8[28]; // [rsp&#43;20h] [rbp-58h] BYREF v3 = ObjectGet(*a1); v4 = v3; if ( v3-&gt;public_type != 0x23 || (v3-&gt;public_objectAttributes &amp; 0x10000) != 0 || (v3-&gt;public_objectAttributes &amp; 0x20000) == 0 ) { return 0x19Ci64; } while ( !...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-10-25 00:00:00 +0000 UTC'>2023年10月25日</span>&nbsp;·&nbsp;3 分钟&nbsp;·&nbsp;hongzhenhao</footer>
+  <a class="entry-link" aria-label="post link to Microsoft Hyper-V 虚拟 TPM 设备漏洞分析" href="http://localhost:1313/blog/tiangongarticle002/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© <a href="https://poc.qianxin.com/home">天工实验室</a></span>
+        
+
+    
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+</body>
+
+</html>

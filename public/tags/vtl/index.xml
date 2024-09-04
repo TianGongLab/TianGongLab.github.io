@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>VTL on 天工实验室</title>
+    <link>http://localhost:1313/tags/vtl/</link>
+    <description>Recent content in VTL on 天工实验室</description>
+    <generator>Hugo -- 0.133.1</generator>
+    <language>zh</language>
+    <copyright>天工实验室</copyright>
+    <lastBuildDate>Wed, 21 Aug 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/vtl/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>深入解析Windows VTL机制 &amp; IUM进程</title>
+      <link>http://localhost:1313/blog/tiangongarticle043/</link>
+      <pubDate>Wed, 21 Aug 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tiangongarticle043/</guid>
+      <description>深入解析Windows VTL机制 &amp;amp; IUM进程 一、前言 现今的Windows操作系统已经融合了虚拟化技术作为自身的核心功能，Windows平台下的虚拟化技术的应用也不仅限于Hyper-V虚拟化软件的应用，在一些用于保护Windows系统的安全功能中，虚拟化技术的使用也变得尤为重要。现在我们就来简单探索下Windows的VTL机制和IUM进程，这两种基于虚拟化技术的安全功能。
+二、VTL机制和IUM进程介绍 Virtual Secure Mode(VSM)最早在Windows10和Windows Server 2016中被引入，是基于Windows平台下的虚拟化技术的安全功能，使用的是Hyper-V的虚拟化组件。
+VSM的主要作用是，在这个安全功能开启的情况下，即使主机上的内核或者驱动程序（即Ring0层）受到攻击，受到VSM体系保护的数据依然可以保持安全，保证数据不被篡改或者无法被访问，甚至攻击者处于Ring0权限下。
+与我们熟知的VMware或者QEMU虚拟化软件不同，Hyper-V的虚拟化实现是裸金属架构的，即Hypervisor层的组件运行在实体的硬件上，而无论是所谓的Guest(Child Parition)或者Host(Root Parition)都是Hypervisor层之上抽象出来的。
+那么，Hyper-V的技术架构是VSM功能的基础，无论是Guest还是Host，实际上都可以通过Hypervisor来控制不同分区对硬件资源的使用能力从而实现在VSM中提及的安全功能。
+VSM功能的引入同时引入了一个新的概念——VTL。
+Virtual Trust Levels（VTL），VSM通过VTL来实现和维护隔离。VTL是有层级概念的，例如熟知的Ring0~3层级权限。但是与Ring0~3概念不同的是，VTL的层级权限是级别高的权限要高于级别低的权限。举个例子：VTL0的权限 &amp;lt; VTL1的权限；VTL1的权限 &amp;lt; VTL2的权限。在微软对VTL的代码实现里，最多支持16个级别VTL，但是截止到目前的关于VTL的代码中，微软只实现了2个级别的VTL。
+为了更直观的展示VTL的作用，这里使用了微软官方给出的IUM架构体系图。
+从图中可以看到，我们所熟知的Windows内核态和用户态都属于VTL0级别下，而SecureKernel和运行在同VTL层级下的用户态进程属于VTL1级别下。此时，假如我们在VTL0种进行内核调试，都无法修改VTL1层级下的用户态进程空间内存。这个例子说明了低级别VTL无法影响到高级别VTL内存空间，不同的VTL级别之间有着明显的隔离边界。
+有了VTL这个概念之后，下面我们来介绍下什么是Isolated User Mode(IUM)进程。通俗来讲，IUM进程就是运行在VTL1层级下的用户态进程。最简单的例子就是LSAIso.exe进程，当这个进程运行在VTL1层级下时，无论是在用户态还是内核态都无法修改这个进程的内存空间，同样地，对其进行调试也是无法进行的。
+下面，我们一起来探索VTL机制和IUM进程（以及如何调试IUM进程）的一些内部细节。
+三、必要的硬件虚拟化知识（Intel） 在探索之前，我们还需要简单的了解下CPU硬件虚拟化知识，这里我们以Intel处理器(Intel VT-x)加以介绍。
+这里首先要介绍的是Intel VT-x和VMX是什么。Intel VT-x的全称是Intel Virtualization Technology for x86，这个东西就是所谓的Intel硬件虚拟化技术，而VMX是其实现的架构，全称为Virtual-Machine Extensions。在VMX下引入了两个概念：VMX root operation和VMX non-root operation模式。
+VMX的root和non-root operation模式可以简单地理解成，hypervisor也就是虚拟化层，即VM管理者(VMM, virtual machine monitor)和Guest所使用的环境。这两种模式可以互相转换，当从VMX的root模式转换到non-root模式时，这个行为被称作VM-entry。那么当VMX的non-root模式切换到root模式，这个行为被称作VM-Exit。
+假设目前VMX处于non-root状态，此时是在执行Guest中的代码，如果执行时遇到了比如CPUID，读写MSR寄存器等操作时，Guest操作系统会被暂停，并产生Vm-Exit事件，同时陷落入VMM，即root operation状态中。VMM根据不同的VM-Exit原因来处理（模拟）此时Guest的执行指令，处理数据并返回结果，最后vmm通过执行vmresume指令重新让Guest系统继续运行，此时的VMX状态又变回了non-root状态。
+在VMX进行root和non-root operation状态切换时，VMCS（Virtual Machine Control Structure）用来配置此时发生切换的处理器状态和执行的环境。在Hyper-V的虚拟化环境中，每个虚拟处理器都对应着一个或者多个VMCS。
+VMCS中有很多字段，对应着当前虚拟处理器的状态信息，比如用于记录当前VM-Exit信息的&amp;quot;Exit reason&amp;quot;字段，通过阅读Intel手册发现这个字段对应的ID是0x4402。因为VMCS中的字段信息无法直接通过读取物理内存的方式读取到，所以这里必须使用Intel给出的指令集vmread/vmwrite来读写对应的字段内容。
+#define EXIT_REASON_EXCEPTION_NMI 0 #define EXIT_REASON_EXTERNAL_INTERRUPT 1 #define EXIT_REASON_TRIPLE_FAULT 2 #define EXIT_REASON_INIT_SIGNAL 3 #define EXIT_REASON_SIPI_SIGNAL 4 #define EXIT_REASON_INTERRUPT_WINDOW 7 #define EXIT_REASON_NMI_WINDOW 8 #define EXIT_REASON_TASK_SWITCH 9 #define EXIT_REASON_CPUID 10 #define EXIT_REASON_HLT 12 #define EXIT_REASON_INVD 13 #define EXIT_REASON_INVLPG 14 #define EXIT_REASON_RDPMC 15 #define EXIT_REASON_RDTSC 16 #define EXIT_REASON_VMCALL 18 #define EXIT_REASON_VMCLEAR 19 #define EXIT_REASON_VMLAUNCH 20 #define EXIT_REASON_VMPTRLD 21 #define EXIT_REASON_VMPTRST 22 #define EXIT_REASON_VMREAD 23 #define EXIT_REASON_VMRESUME 24 #define EXIT_REASON_VMWRITE 25 #define EXIT_REASON_VMOFF 26 #define EXIT_REASON_VMON 27 #define EXIT_REASON_CR_ACCESS 28 #define EXIT_REASON_DR_ACCESS 29 #define EXIT_REASON_IO_INSTRUCTION 30 #define EXIT_REASON_MSR_READ 31 #define EXIT_REASON_MSR_WRITE 32 #define EXIT_REASON_INVALID_STATE 33 #define EXIT_REASON_MSR_LOAD_FAIL 34 #define EXIT_REASON_MWAIT_INSTRUCTION 36 #define EXIT_REASON_MONITOR_TRAP_FLAG 37 #define EXIT_REASON_MONITOR_INSTRUCTION 39 #define EXIT_REASON_PAUSE_INSTRUCTION 40 #define EXIT_REASON_MCE_DURING_VMENTRY 41 #define EXIT_REASON_TPR_BELOW_THRESHOLD 43 #define EXIT_REASON_APIC_ACCESS 44 #define EXIT_REASON_EOI_INDUCED 45 #define EXIT_REASON_GDTR_IDTR 46 #define EXIT_REASON_LDTR_TR 47 #define EXIT_REASON_EPT_VIOLATION 48 #define EXIT_REASON_EPT_MISCONFIG 49 #define EXIT_REASON_INVEPT 50 #define EXIT_REASON_RDTSCP 51 #define EXIT_REASON_PREEMPTION_TIMER 52 #define EXIT_REASON_INVVPID 53 #define EXIT_REASON_WBINVD 54 #define EXIT_REASON_XSETBV 55 #define EXIT_REASON_APIC_WRITE 56 #define EXIT_REASON_RDRAND 57 #define EXIT_REASON_INVPCID 58 #define EXIT_REASON_VMFUNC 59 #define EXIT_REASON_ENCLS 60 #define EXIT_REASON_RDSEED 61 #define EXIT_REASON_PML_FULL 62 #define EXIT_REASON_XSAVES 63 #define EXIT_REASON_XRSTORS 64 #define EXIT_REASON_UMWAIT 67 #define EXIT_REASON_TPAUSE 68 #define EXIT_REASON_BUS_LOCK 74 #define EXIT_REASON_NOTIFY 75 通过vmread读取0x4402 id字段的内容，就可以得到VM-Exit的原因，VMM根据上图中这些若干的原因进行处理，完成处理后，将结果改写到例如Guest中的寄存器中，此时也需要通过vmwrite改写其中关于Guest寄存器信息的字段，最后通过vmresume将控制权交还Guest。</description>
+    </item>
+  </channel>
+</rss>

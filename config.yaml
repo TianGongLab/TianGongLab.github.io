@@ -1,0 +1,54 @@
+baseURL: "https://tiangonglab.github.io"
+title: "天工实验室"
+copyright: "© [天工实验室](https://poc.qianxin.com/home)"
+languageCode: "zh"
+defaultContentLanguage: "zh"
+theme: "papermod"
+
+menu:
+  main:
+    - name: 归档
+      url: archives
+      weight: 5
+    - name: 标签
+      url: tags/
+      weight: 10
+    - name: 破壳官网
+      url: https://poc.qianxin.com/home
+params:
+  description: "奇安信天工实验室｜互联网基础设施漏洞挖掘"
+  author: 奇安信天工实验室
+  ShowShareButtons: true
+  ShowReadingTime: true
+  displayFullLangName: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowRssButtonInSectionTermList: true
+  ShowAllPagesInArchive: true
+  ShowPageNums: true
+  ShowToc: true
+  disableThemeToggle: true
+  defaultTheme: dark
+  homeInfoParams:
+      Title: "奇安信天工实验室技术博客"
+      Content: >
+        👋 奇安信天工实验室，聚焦真实世界漏洞分析。漏洞研究成果曾发表于DEFCON、BlackHat、GeekCon、HITB、ACM CCS、Usenix、EuroS&P、RAID等国际重量级会议。
+        
+        - 团队研发的破壳平台，提供基于查询、面向团队协作的漏洞辅助分析能力。
+        
+  socialIcons:
+    - name: github
+      title: Follow on Github
+      url: "https://github.com/tiangonglab"
+    - name: X
+      title: Follow on X/Twitter
+      url: "https://x.com/TianGongLab"
+    # - name: wechat
+    #   title: Follow on WeChat
+    #   url: "https://ko-fi.com/adityatelange"
+
+  label:
+    text: "天工实验室"
+    icon: /logo/logo3.png
+    iconHeight: 100

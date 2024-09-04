@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Memory Model on 天工实验室</title>
+    <link>http://localhost:1313/tags/memory-model/</link>
+    <description>Recent content in Memory Model on 天工实验室</description>
+    <generator>Hugo -- 0.133.1</generator>
+    <language>zh</language>
+    <copyright>天工实验室</copyright>
+    <lastBuildDate>Wed, 17 Jul 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/memory-model/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Rust逆向入门：从反编译视角学习内存模型</title>
+      <link>http://localhost:1313/blog/tiangongarticle039/</link>
+      <pubDate>Wed, 17 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tiangongarticle039/</guid>
+      <description>Rust逆向入门：从反编译视角学习内存模型 一、前言 Rust反编译一直是比较困难的问题，Rust强调零成本抽象，在使用高级特性（如泛型、闭包、迭代器等）时为了不引入额外的运行时开销，编译器会生成高度优化且复杂的机器码，从而难以直接恢复高层的抽象结构，除此之外，Rust 的所有权系统及其借用检查器在编译过程中被彻底消解成运行时代码。这个过程生成了许多低级的内存管理代码，这些代码在反编译时难以重新构建成高层次的所有权和生命周期语义。尽管反编译 Rust 代码有诸多困难，但进行 Rust 反编译依然具备现实意义，例如分析闭源Rust代码，寻找潜在的安全漏洞。本文旨在学习Rust基本内存数据结构及其内存布局，并且通过反编译视角理解Rust编译器到底做了什么事。
+值得注意的时，Rust目前没有确定内存模型，因此本文谈到的是Rustc编译器实现的Rust模型。
+Rust 目前没有确定内存模型
+Rust does not yet have a defined memory model. Various academics and industry professionals are working on various proposals, but for now, this is an under-defined place in the language.
+二、反编译器准备 本文中的很多例子会使用到反编译工具，例如IDA或者ghidra。ghidra在11版本以后增加了对Rust支持，在使用ghidra进行反编译Rust工具时只需要选中Demangler Rust即可。
+IDA则需要额外的IDARustDemangler插件，不管是ghidra的Demangler Rust功能亦或是IDARustDemangler插件，其功能都是将Rust二进制文件中经过编译器mangle过的符号进行demangle，得到原始符号，以下以IDA得视角对比了demangle之前与demangle之后得代码视图，可以看到可读性大大增加。
+demangle之前：
+demangle之后：
+三、函数调用__Rustcall 在x86_64平台UNIX系统下面，Rust遵循System V ABI，即传参会通过rdi、rsi、rdx、rcx、r8、r9等，返回值会通过rax，在某些情况下，compiler会进行返回值优化（Return Value Optimization，RVO），这时候函数调用约定就会发生变化，返回值不再是使用rax进行传递，而是使用rdi（函数的第一个参数）。以如下例子为例，我们查看ghidra编译器到底做了什么？
+fn add_str_ret_str(a:&amp;amp;str,b:&amp;amp;str)-&amp;gt;String{ return a.to_string()+&amp;amp;b.to_string(); } 对于上述代码，因为在返回时新建了对象（没有新建对象不会触发RVO，此时依旧通过rax传递对象），会触发返回值优化，使得返回值通过第一个参数进行传递。
+IDA视角下得Rustcall，IDA会将第一个参数命名为retstr，提醒用户这个字段是返回值。
+在ghidra视角下rust调用使用__rustcall关键字标识，ghidra使用return_storage_ptr来标记返回值。
+四、Rust内存布局 在Rust中基本类型、引用（存储的是变量的地址，大小为8字节）、数组（连续内存块）与传统的C、C++内存布局一样，因此本文不再赘述。本文主要探究Rust特有实现，例如动态数组、String、动态大小类型（Dynamic Sized Type，DST）。
+4.1 动态数组与String Rust中的动态数组Vec以及String类型的底层实现与C++容器相同，其采用三个部分来表示，分别是：
+pointer：指向数据字节流buffer中存储的数据； length：buffer中字节流的字节长度； capacity：buffer的长度。 实际上看String的实现，会发现String的实现基于Vec，以下代码摘自Rust底层实现：</description>
+    </item>
+  </channel>
+</rss>

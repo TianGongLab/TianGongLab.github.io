@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>WAF防护绕过技巧分析 | 天工实验室</title>
+<meta name="keywords" content="WAF">
+<meta name="description" content="WAF防护绕过技巧分析 一、WAF介绍与分类 （一）WAF简介 Web应用防护系统（Web Application Firewall，网站应用级入侵防御系统），是通过执行一系列针对HTTP/HTTPS的安全策略来专门为Web应用提供保护的产品。
+市场上的WAF产品有很多，像腾讯云，阿里云，长亭等，目前世界上常年排名第一的是以色列的 Imperva。
+（二）WAF分类 规则实现 语义分析引擎WAF，国内大多数都是正则引擎，此外还有机器学习引擎。
+部署方式 网络层WAF、应用层WAF、云WAF
+WAF部署方式 WAF大多是串联在这个链路中，起到一个阻断作用。就比如在Web Server和CGI之间的WAF，CGI这里特指PHP和ASP，像JSP一般就统一tomcat中间件了，就不需要CGI层了。
+云部署一般先会起一个高防IP，然后用这个IP去连接WAF集群，一般来说都是从四层的流量解除七层的流量，然后再将正常的流量向后端转发，像这些企业A企业B可能在云上也可能不在。
+二、网络层WAF Bypass （一）分包分组 通过调整MSS控制分包 控制MSS去调整TCP分包的大小 单个TCP会话可能含有多个HTTP会话：比如TCP先建立一个三次握手，建立之后发送多个HTTP请求，并没有断开，一般的设备都会去很好的解析处理，但是有一些古老的设备只会去解析第一个，现在已经很少了。
+单个TCP包发送多组HTTP报文（Pipeline技巧以及HTTP请求走私）：就是在DATA部分写多个http请求，有的设备就会认为第一个正常，那么后面的就类似于body部分，就会出现解析错误。
+HTTP请求走私和Pipeline的区别就是请求走私利用不同的Content-Length引发歧义，比如下面这个，第一个content-length是包括了下面两个，或者content-length写一个1或者2，到底Web Server会取哪一个，需要针对不同的去研究，所以取值的解析差异，就会认为他是一整个或者是三个，利用这种方式就可以去迷惑WAF。
+在标准的HTTP走私里面，一般content-length和Transfer-Encoding只会采纳一个，大部分优先是 Transfer-Encoding: chunked，当然也有一些两个都支持，就会出现一些问题。
+chunked 利用chunked切分，比如下面是个最简单的chunked，对关键字进行一个拆分。
+这里的5,4,3是以16进制写的，最后以0来结尾，如果是10个字符的话就要写A。
+这种是只针对于网络层，应用层就不会出现这种问题，因为应用层是在完成chunked组包之后，才去解析，所以对应用层无效。
+三、应用层WAF Bypass （一）multipart/form-data 理论知识 HTTP协议POST请求，除了常规的application/x-www-form-urlencoded以外，还有multipart/form-data这种形式，主要是为了解决上传文件场景下文件内容较大且内置字符不可控的问题。multipart/form-data格式也是可以传递POST参数的。对于Nginx&#43;PHP的架构，Nginx实际上是不负责
+解析multipart/form-data的body部分的，而是交由PHP来解析，因此WAF所获取的内容就很有可能与后端的PHP发生不一致。
+使用以下脚本来进行测试
+&lt;?php echo file_get_contents(&#34;php://input&#34;); var_dump($_POST); var_dump($_FILES); ?&gt; 正常POST请求如下：
+change body encoding，如下：
+只有input不太一样，一个有f=1一个没有，参数并没有进入Files数组，而是进入了_POST数据。那么，何时是上传文件？何时是POST参数呢？这个关键点在于有没有一个完整的filename=。这9个字符是经过反复测试的，缺一个字符不可，替换一个字符也不可，在其中添加一个字符更不可。
+加上filename=之后：
+可以看到这次并没有传给POST数组，而是传给了FILES数组变成了一个文件。
+Bypass WAF的核心思想在于，一些WAF产品处于降低误报考虑，对用户上传文件的内容不做匹配，直接放行，比如一些压缩包图片之类的，在二进制流下面任意字符是不可控的，所以里面出现一些危险函数是很正常的。事实上，这些内容在绝大多数场景也无法引起攻击。所以让POST过去的数据去过那些规则，让FILES的只要符合白名单即可。
+但关键问题在于，WAF能否准确有效识别出哪些内容是传给POST数组的，哪些传给_FILES数组？如果不能，那我们是否就可以想办法让WAF以为我们是在上传文件，而实际上却是在POST一个参数，这个参数可以是命令注入、SQL注入、SSRF等任意的一种攻击，这样就实现了通用WAF Bypass。
+基础案例 0x00截断filename 截断之后发现传给了POST数组
+有的WAF在处理包之前会将00删掉，再去解析会产生差异，所以有的地方00是不能删的，所以会产生bypass
+双写上传描述行 双写后，一些WAF会取第二行，而实际PHP会获取第一行
+双写整个part开头部分 可以看到取的还是第一行，只不过会将第二部分全部当成f的值，这里做SQL注入比较麻烦，需要将前面全都闭合掉，但是命令注入就很简单，直接将1给改成payload即可优先执行。
+这里可以延伸出构造一个假的part
+构造假的part 和上一个类似，少了一个换行，这样原本干扰的部分就不会取了
+双写boundary 可以看到是以a为主">
+<meta name="author" content="ink">
+<link rel="canonical" href="http://localhost:1313/blog/tiangongarticle005/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.9b0c42f9222bc665b5845e6199fc07fd87b025125d3366cc5f873b0f54ca8481.css" integrity="sha256-mwxC&#43;SIrxmW1hF5hmfwH/YewJRJdM2bMX4c7D1TKhIE=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/blog/tiangongarticle005/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class=" dark" id="top">
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="天工实验室 (Alt + H)">
+                <img src="http://localhost:1313/logo/logo3.png" alt="" aria-label="logo"
+                    height="100" style="margin-top: 15px;">
+            </a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="标签">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://poc.qianxin.com/home" title="破壳官网">
+                    <span>破壳官网</span>&nbsp;
+                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
+                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14L21 3"></path>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">主页</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blog/">博客</a></div>
+    <h1 class="post-title entry-hint-parent">
+      WAF防护绕过技巧分析
+    </h1>
+    <div class="post-meta"><span title='2023-11-08 00:00:00 +0000 UTC'>2023年11月08日</span>&nbsp;·&nbsp;1 分钟&nbsp;·&nbsp;ink
+
+</div>
+  </header>
+
+  <div class="author">
+    <div class="author_avatar">
+      <img src="/authors/ink.jpg" alt="ink">
+    </div>
+    <div class="author_info">
+      <span class="author_id">ink</span>
+      <p class="author_description">专注于代码审计、漏洞挖掘及免杀对抗领域</p>
+    </div>
+  </div>
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/waf/">WAF</a></li>
+    </ul><br/> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">目录</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#waf%e9%98%b2%e6%8a%a4%e7%bb%95%e8%bf%87%e6%8a%80%e5%b7%a7%e5%88%86%e6%9e%90" aria-label="WAF防护绕过技巧分析">WAF防护绕过技巧分析</a><ul>
+                        
+                <li>
+                    <a href="#%e4%b8%80waf%e4%bb%8b%e7%bb%8d%e4%b8%8e%e5%88%86%e7%b1%bb" aria-label="一、WAF介绍与分类">一、WAF介绍与分类</a><ul>
+                        
+                <li>
+                    <a href="#%e4%b8%80waf%e7%ae%80%e4%bb%8b" aria-label="（一）WAF简介">（一）WAF简介</a></li>
+                <li>
+                    <a href="#%e4%ba%8cwaf%e5%88%86%e7%b1%bb" aria-label="（二）WAF分类">（二）WAF分类</a><ul>
+                        
+                <li>
+                    <a href="#%e8%a7%84%e5%88%99%e5%ae%9e%e7%8e%b0" aria-label="规则实现">规则实现</a></li>
+                <li>
+                    <a href="#%e9%83%a8%e7%bd%b2%e6%96%b9%e5%bc%8f" aria-label="部署方式">部署方式</a></li>
+                <li>
+                    <a href="#waf%e9%83%a8%e7%bd%b2%e6%96%b9%e5%bc%8f" aria-label="WAF部署方式">WAF部署方式</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e4%ba%8c%e7%bd%91%e7%bb%9c%e5%b1%82waf-bypass" aria-label="二、网络层WAF Bypass">二、网络层WAF Bypass</a><ul>
+                        
+                <li>
+                    <a href="#%e4%b8%80%e5%88%86%e5%8c%85%e5%88%86%e7%bb%84" aria-label="（一）分包分组">（一）分包分组</a><ul>
+                        
+                <li>
+                    <a href="#%e9%80%9a%e8%bf%87%e8%b0%83%e6%95%b4mss%e6%8e%a7%e5%88%b6%e5%88%86%e5%8c%85" aria-label="通过调整MSS控制分包">通过调整MSS控制分包</a></li>
+                <li>
+                    <a href="#chunked" aria-label="chunked">chunked</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e4%b8%89%e5%ba%94%e7%94%a8%e5%b1%82waf-bypass" aria-label="三、应用层WAF Bypass">三、应用层WAF Bypass</a><ul>
+                        
+                <li>
+                    <a href="#%e4%b8%80multipartform-data" aria-label="（一）multipart/form-data">（一）multipart/form-data</a><ul>
+                        
+                <li>
+                    <a href="#%e7%90%86%e8%ae%ba%e7%9f%a5%e8%af%86" aria-label="理论知识">理论知识</a></li>
+                <li>
+                    <a href="#%e5%9f%ba%e7%a1%80%e6%a1%88%e4%be%8b" aria-label="基础案例">基础案例</a><ul>
+                        
+                <li>
+                    <a href="#0x00%e6%88%aa%e6%96%adfilename" aria-label="0x00截断filename">0x00截断filename</a></li>
+                <li>
+                    <a href="#%e5%8f%8c%e5%86%99%e4%b8%8a%e4%bc%a0%e6%8f%8f%e8%bf%b0%e8%a1%8c" aria-label="双写上传描述行">双写上传描述行</a></li>
+                <li>
+                    <a href="#%e5%8f%8c%e5%86%99%e6%95%b4%e4%b8%aapart%e5%bc%80%e5%a4%b4%e9%83%a8%e5%88%86" aria-label="双写整个part开头部分">双写整个part开头部分</a></li>
+                <li>
+                    <a href="#%e6%9e%84%e9%80%a0%e5%81%87%e7%9a%84part" aria-label="构造假的part">构造假的part</a></li>
+                <li>
+                    <a href="#%e5%8f%8c%e5%86%99boundary" aria-label="双写boundary">双写boundary</a></li>
+                <li>
+                    <a href="#%e5%8f%8c%e5%86%99content-type" aria-label="双写Content-Type">双写Content-Type</a></li>
+                <li>
+                    <a href="#%e7%a9%baboundary" aria-label="空boundary">空boundary</a></li>
+                <li>
+                    <a href="#%e7%a9%ba%e6%a0%bcboundary" aria-label="空格boundary">空格boundary</a></li>
+                <li>
+                    <a href="#boundary%e4%b8%ad%e7%9a%84%e9%80%97%e5%8f%b7" aria-label="boundary中的逗号">boundary中的逗号</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e8%bf%9b%e9%98%b6%e6%a1%88%e4%be%8b" aria-label="进阶案例">进阶案例</a><ul>
+                        
+                <li>
+                    <a href="#0x00%e8%bf%9b%e9%98%b6" aria-label="0x00进阶">0x00进阶</a></li>
+                <li>
+                    <a href="#boundary%e8%bf%9b%e9%98%b6" aria-label="boundary进阶">boundary进阶</a></li>
+                <li>
+                    <a href="#%e5%8d%95%e5%8f%8c%e5%bc%95%e5%8f%b7%e6%b7%b7%e5%90%88%e8%bf%9b%e9%98%b6" aria-label="单双引号混合进阶">单双引号混合进阶</a></li>
+                <li>
+                    <a href="#urlencoded%e4%bc%aa%e8%a3%85%e6%88%90%e4%b8%bamultipart" aria-label="urlencoded伪装成为multipart">urlencoded伪装成为multipart</a></li>
+                <li>
+                    <a href="#skip_upload" aria-label="skip_upload">skip_upload</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e4%ba%8c%e5%85%b6%e4%bb%96%e6%8a%80%e5%b7%a7" aria-label="（二）其他技巧">（二）其他技巧</a><ul>
+                        
+                <li>
+                    <a href="#host%e6%9b%bf%e6%8d%a2" aria-label="Host替换">Host替换</a></li>
+                <li>
+                    <a href="#url%e4%b8%8e%e6%9b%bf%e6%8d%a2" aria-label="URL#与../替换">URL#与../替换</a></li>
+                <li>
+                    <a href="#http%e5%8f%82%e6%95%b0%e6%b1%a1%e6%9f%93" aria-label="HTTP参数污染">HTTP参数污染</a></li>
+                <li>
+                    <a href="#http09" aria-label="HTTP/0.9">HTTP/0.9</a></li>
+                <li>
+                    <a href="#%e5%88%a9%e7%94%a8chuncked%e6%9e%84%e9%80%a0content-length%e4%b8%ba0" aria-label="利用chuncked构造content-length为0">利用chuncked构造content-length为0</a></li>
+                <li>
+                    <a href="#%e5%8a%a0%e5%85%a5%e4%b8%ad%e6%96%87%e5%ad%97%e7%ac%a6" aria-label="加入中文字符">加入中文字符</a></li>
+                <li>
+                    <a href="#http%e6%96%b9%e6%b3%95%e6%9e%84%e9%80%a0" aria-label="HTTP方法构造">HTTP方法构造</a></li>
+                <li>
+                    <a href="#%e6%b7%bb%e5%8a%a0xff%e5%a4%b4" aria-label="添加XFF头">添加XFF头</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e5%9b%9b%e6%80%bb%e7%bb%93" aria-label="四、总结">四、总结</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="waf防护绕过技巧分析">WAF防护绕过技巧分析<a hidden class="anchor" aria-hidden="true" href="#waf防护绕过技巧分析">#</a></h1>
+<h2 id="一waf介绍与分类">一、WAF介绍与分类<a hidden class="anchor" aria-hidden="true" href="#一waf介绍与分类">#</a></h2>
+<h3 id="一waf简介">（一）WAF简介<a hidden class="anchor" aria-hidden="true" href="#一waf简介">#</a></h3>
+<p>Web应用防护系统（Web Application Firewall，网站应用级入侵防御系统），是通过执行一系列针对HTTP/HTTPS的安全策略来专门为Web应用提供保护的产品。</p>
+<p>市场上的WAF产品有很多，像腾讯云，阿里云，长亭等，目前世界上常年排名第一的是以色列的 Imperva。</p>
+<!-- raw HTML omitted -->
+<h3 id="二waf分类">（二）WAF分类<a hidden class="anchor" aria-hidden="true" href="#二waf分类">#</a></h3>
+<h4 id="规则实现">规则实现<a hidden class="anchor" aria-hidden="true" href="#规则实现">#</a></h4>
+<p>语义分析引擎WAF，国内大多数都是正则引擎，此外还有机器学习引擎。</p>
+<h4 id="部署方式">部署方式<a hidden class="anchor" aria-hidden="true" href="#部署方式">#</a></h4>
+<p>网络层WAF、应用层WAF、云WAF</p>
+<h4 id="waf部署方式">WAF部署方式<a hidden class="anchor" aria-hidden="true" href="#waf部署方式">#</a></h4>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/afec3247-2aa3-424f-8b89-eff0e861a82f.png" alt=""  />
+</p>
+<p>WAF大多是串联在这个链路中，起到一个阻断作用。就比如在Web Server和CGI之间的WAF，CGI这里特指PHP和ASP，像JSP一般就统一tomcat中间件了，就不需要CGI层了。</p>
+<p>云部署一般先会起一个高防IP，然后用这个IP去连接WAF集群，一般来说都是从四层的流量解除七层的流量，然后再将正常的流量向后端转发，像这些企业A企业B可能在云上也可能不在。</p>
+<h2 id="二网络层waf-bypass">二、网络层WAF Bypass<a hidden class="anchor" aria-hidden="true" href="#二网络层waf-bypass">#</a></h2>
+<h3 id="一分包分组">（一）分包分组<a hidden class="anchor" aria-hidden="true" href="#一分包分组">#</a></h3>
+<h4 id="通过调整mss控制分包">通过调整MSS控制分包<a hidden class="anchor" aria-hidden="true" href="#通过调整mss控制分包">#</a></h4>
+<p>控制MSS去调整TCP分包的大小 </p>
+<p>单个TCP会话可能含有多个HTTP会话：比如TCP先建立一个三次握手，建立之后发送多个HTTP请求，并没有断开，一般的设备都会去很好的解析处理，但是有一些古老的设备只会去解析第一个，现在已经很少了。</p>
+<p>单个TCP包发送多组HTTP报文（Pipeline技巧以及HTTP请求走私）：就是在DATA部分写多个http请求，有的设备就会认为第一个正常，那么后面的就类似于body部分，就会出现解析错误。</p>
+<p>HTTP请求走私和Pipeline的区别就是请求走私利用不同的Content-Length引发歧义，比如下面这个，第一个content-length是包括了下面两个，或者content-length写一个1或者2，到底Web Server会取哪一个，需要针对不同的去研究，所以取值的解析差异，就会认为他是一整个或者是三个，利用这种方式就可以去迷惑WAF。</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/923bdb52-c5db-47cf-805a-eaf649f480a8.png" alt=""  />
+</p>
+<p>在标准的HTTP走私里面，一般content-length和Transfer-Encoding只会采纳一个，大部分优先是 Transfer-Encoding: chunked，当然也有一些两个都支持，就会出现一些问题。</p>
+<h4 id="chunked">chunked<a hidden class="anchor" aria-hidden="true" href="#chunked">#</a></h4>
+<p>利用chunked切分，比如下面是个最简单的chunked，对关键字进行一个拆分。</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/e7afbb3e-3a1f-47b7-a975-0b03679fbca2.png" alt=""  />
+</p>
+<p>这里的5,4,3是以16进制写的，最后以0来结尾，如果是10个字符的话就要写A。</p>
+<p>这种是只针对于网络层，应用层就不会出现这种问题，因为应用层是在完成chunked组包之后，才去解析，所以对应用层无效。</p>
+<h2 id="三应用层waf-bypass">三、应用层WAF Bypass<a hidden class="anchor" aria-hidden="true" href="#三应用层waf-bypass">#</a></h2>
+<h3 id="一multipartform-data">（一）multipart/form-data<a hidden class="anchor" aria-hidden="true" href="#一multipartform-data">#</a></h3>
+<h4 id="理论知识">理论知识<a hidden class="anchor" aria-hidden="true" href="#理论知识">#</a></h4>
+<p>HTTP协议POST请求，除了常规的application/x-www-form-urlencoded以外，还有multipart/form-data这种形式，主要是为了解决上传文件场景下文件内容较大且内置字符不可控的问题。multipart/form-data格式也是可以传递POST参数的。对于Nginx+PHP的架构，Nginx实际上是不负责</p>
+<p>解析multipart/form-data的body部分的，而是交由PHP来解析，因此WAF所获取的内容就很有可能与后端的PHP发生不一致。</p>
+<p>使用以下脚本来进行测试</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#f92672">&lt;?</span><span style="color:#a6e22e">php</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">echo</span> <span style="color:#a6e22e">file_get_contents</span>(<span style="color:#e6db74">&#34;php://input&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">var_dump</span>(<span style="color:#a6e22e">$_POST</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">var_dump</span>(<span style="color:#a6e22e">$_FILES</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">?&gt;</span>
+</span></span></code></pre></div><p>正常POST请求如下：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/0ff64f40-166c-4e4f-9661-d7103bda20bb.png" alt=""  />
+</p>
+<p>change body encoding，如下：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/13abf27f-5ba5-40f2-80bd-6607cec89d87.png" alt=""  />
+</p>
+<p>只有input不太一样，一个有f=1一个没有，参数并没有进入Files数组，而是进入了_POST数据。那么，何时是上传文件？何时是POST参数呢？这个关键点在于有没有一个完整的filename=。这9个字符是经过反复测试的，缺一个字符不可，替换一个字符也不可，在其中添加一个字符更不可。</p>
+<p>加上filename=之后：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/464b3aa6-5de7-466d-9d43-0bf0f992f085.png" alt=""  />
+</p>
+<p>可以看到这次并没有传给POST数组，而是传给了FILES数组变成了一个文件。</p>
+<p>Bypass WAF的核心思想在于，一些WAF产品处于降低误报考虑，对用户上传文件的内容不做匹配，直接放行，比如一些压缩包图片之类的，在二进制流下面任意字符是不可控的，所以里面出现一些危险函数是很正常的。事实上，这些内容在绝大多数场景也无法引起攻击。所以让POST过去的数据去过那些规则，让FILES的只要符合白名单即可。</p>
+<p>但关键问题在于，WAF能否准确有效识别出哪些内容是传给POST数组的，哪些传给_FILES数组？如果不能，那我们是否就可以想办法让WAF以为我们是在上传文件，而实际上却是在POST一个参数，这个参数可以是命令注入、SQL注入、SSRF等任意的一种攻击，这样就实现了通用WAF Bypass。</p>
+<h4 id="基础案例">基础案例<a hidden class="anchor" aria-hidden="true" href="#基础案例">#</a></h4>
+<h5 id="0x00截断filename">0x00截断filename<a hidden class="anchor" aria-hidden="true" href="#0x00截断filename">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/91de88d7-b5a5-48c5-9895-8fe64f9b7773.png" alt=""  />
+截断之后发现传给了POST数组</p>
+<p>有的WAF在处理包之前会将00删掉，再去解析会产生差异，所以有的地方00是不能删的，所以会产生bypass</p>
+<h5 id="双写上传描述行">双写上传描述行<a hidden class="anchor" aria-hidden="true" href="#双写上传描述行">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/347cc9aa-3a0f-42dc-8b86-6292e93f1625.png" alt=""  />
+双写后，一些WAF会取第二行，而实际PHP会获取第一行</p>
+<h5 id="双写整个part开头部分">双写整个part开头部分<a hidden class="anchor" aria-hidden="true" href="#双写整个part开头部分">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/7b67dc36-477b-4e81-86fd-02e8c9cf758c.png" alt=""  />
+可以看到取的还是第一行，只不过会将第二部分全部当成f的值，这里做SQL注入比较麻烦，需要将前面全都闭合掉，但是命令注入就很简单，直接将1给改成payload即可优先执行。</p>
+<p>这里可以延伸出构造一个假的part</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/7a946a53-2a90-4765-bcc6-47db092d2f92.png" alt=""  />
+</p>
+<h5 id="构造假的part">构造假的part<a hidden class="anchor" aria-hidden="true" href="#构造假的part">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/dfd5f278-a367-45e0-b4f0-73ffbc6f6cdc.png" alt=""  />
+和上一个类似，少了一个换行，这样原本干扰的部分就不会取了</p>
+<h5 id="双写boundary">双写boundary<a hidden class="anchor" aria-hidden="true" href="#双写boundary">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/9bbf5693-9c08-44e9-8b62-cf728ab8625a.png" alt=""  />
+</p>
+<p>可以看到是以a为主</p>
+<h5 id="双写content-type">双写Content-Type<a hidden class="anchor" aria-hidden="true" href="#双写content-type">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/03ac2393-b053-4fcf-9ebd-26d3202a10bc.png" alt=""  />
+</p>
+<p>还是以a为主</p>
+<h5 id="空boundary">空boundary<a hidden class="anchor" aria-hidden="true" href="#空boundary">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/28361d93-cd48-4e8e-9bc2-db0a5ddac9ba.png" alt=""  />
+</p>
+<p>有些WAF可能会认为boundary是；但是实际上boundary是空的</p>
+<h5 id="空格boundary">空格boundary<a hidden class="anchor" aria-hidden="true" href="#空格boundary">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/81633a33-e191-48ab-bd76-dbcd4d4029b9.png" alt=""  />
+</p>
+<p>有些WAF会把空格给去掉</p>
+<h5 id="boundary中的逗号">boundary中的逗号<a hidden class="anchor" aria-hidden="true" href="#boundary中的逗号">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/69566fca-f2b8-4f8c-b02e-aa397f5c1d31.png" alt=""  />
+boundary遇到逗号就结束了，所以取到的是a</p>
+<p>同理，如果是 <strong>==,; ==</strong>，如下：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/c426ea3e-afab-43a2-a111-98fc8a1bd03c.png" alt=""  />
+</p>
+<p>此时boundary还是空</p>
+<h4 id="进阶案例">进阶案例<a hidden class="anchor" aria-hidden="true" href="#进阶案例">#</a></h4>
+<h5 id="0x00进阶">0x00进阶<a hidden class="anchor" aria-hidden="true" href="#0x00进阶">#</a></h5>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/213c19e5-9305-4358-9b98-118904401e74.png" alt=""  />
+</p>
+<p>如果是这样双写，其实是以第一行为主的，这样就是上传文件。但如果我们在适当的地方加入0x00、空格和 \t ， 就会破坏第一行，让PHP反以第二行为主：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/ce29712c-f8d9-4016-8df7-a217c210d2ac.png" alt=""  />
+</p>
+<p>如上图，随便在这三个地方加上空格，都会以第二行为主，这样防御是比较困难的，将其替换为0x00和0x20与之同理， 可自行测试</p>
+<p>此外，在filename前面，和参数名f后面，加上0x00也是可以绕过的</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/795dc3e3-2abf-47a4-92fb-9c2e537617e2.png" alt=""  />
+</p>
+<h5 id="boundary进阶">boundary进阶<a hidden class="anchor" aria-hidden="true" href="#boundary进阶">#</a></h5>
+<p>boundary的名称是可以前后加入任意内容的，WAF如果严格按boundary去取，就可以绕过</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/71481c18-21e4-47cb-b5eb-458722cd4a7e.png" alt=""  />
+</p>
+<p>如何取boundary也是一个问题，如下：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/76435c2b-f86f-4547-a34b-a73460c64499.png" alt=""  />
+</p>
+<p>这里取boundary=b为boundary</p>
+<h5 id="单双引号混合进阶">单双引号混合进阶<a hidden class="anchor" aria-hidden="true" href="#单双引号混合进阶">#</a></h5>
+<p>需要考虑的问题是，Content-Disposition中的字段使用单引号还是双引号</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/42991e56-19ae-4e5b-89bc-642e023077d3.png" alt=""  />
+</p>
+<h5 id="urlencoded伪装成为multipart">urlencoded伪装成为multipart<a hidden class="anchor" aria-hidden="true" href="#urlencoded伪装成为multipart">#</a></h5>
+<p>实际上是urlencoded，但是伪装成了multipart，通过&amp;来截取前后装饰部分，保留id参数的完整性。理论上multipart/form-data 下的内容不进行urldecoded，一些WAF也正是这样设计的，这样做本没有问题，但是如果是urlencoded格式的内容，不进行url解码就会引入%0a这样字符，而这样的字符不解码是可以直接绕过防护规则的，从而导致了绕过。</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/425f3c95-67ee-4e0c-80b6-e173042efd9d.png" alt=""  />
+</p>
+<h5 id="skip_upload">skip_upload<a hidden class="anchor" aria-hidden="true" href="#skip_upload">#</a></h5>
+<p>在php源码 rfc1867.c line 909</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-php" data-lang="php"><span style="display:flex;"><span><span style="color:#75715e">/* If file_uploads=off, skip the file part */</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">PG</span>(<span style="color:#a6e22e">file_uploads</span>)) {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">skip_upload</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>            } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">upload_cnt</span> <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">skip_upload</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">sapi_module</span><span style="color:#f92672">.</span><span style="color:#a6e22e">sapi_error</span>(<span style="color:#66d9ef">E_WARNING</span>, <span style="color:#e6db74">&#34;Maximum number of allowable file uploads has been exceeded&#34;</span>);
+</span></span><span style="display:flex;"><span>            }
+</span></span></code></pre></div><p>Maximum number of allowable file uploads has been exceeded ，如何达到Maximum？ 发现在php 5.2.12和以上的版本，有一个隐藏的文件上传限制是在php.ini里没有的，就是这个max_file_uploads的设定，该默认值是20, 在php 5.2.17的版本中该值已不再隐藏。文件上传限制最大默认设为20，所以一次上传最大就是20个文档，所以超出20个就会出错了。</p>
+<p>如下：</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/29f41f21-6fbc-40ba-9efd-7b699fac9828.png" alt=""  />
+</p>
+<p>拼接了从a-t这20个part，实际上就填满了Maximum，导致最后一个upload无法生效，就只能从FILES转化为POST了</p>
+<h3 id="二其他技巧">（二）其他技巧<a hidden class="anchor" aria-hidden="true" href="#二其他技巧">#</a></h3>
+<h4 id="host替换">Host替换<a hidden class="anchor" aria-hidden="true" href="#host替换">#</a></h4>
+<p>host如果是一个域名，可以在最后面加一个点 ==.== ，大多数情况下表示的还是当前域名，比如之前阿里云，防护的话是用过域名控制的，传过来一个域名会先看一下有没有受到保护，假如原来的域名受到了保护，但是加了一个点，就不在名单内了，就会被认为没有开WAF</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/6ec1b459-5ec9-4418-8800-6fe12111677e.png" alt=""  />
+</p>
+<p>还可以把Host的IP转为16进制</p>
+<p><img loading="lazy" src="/attachments/2023-11-08-WAF-bypass-tech-analysis/0317a668-73cf-4061-aad9-f8b28a61480f.png" alt=""  />
+</p>
+<h4 id="url与替换">URL#与../替换<a hidden class="anchor" aria-hidden="true" href="#url与替换">#</a></h4>
+<p>如果有时候加上#引发歧义的话，可以使用../跳出</p>
+<p>如果#不可以的话，可以尝试?#</p>
+<h4 id="http参数污染">HTTP参数污染<a hidden class="anchor" aria-hidden="true" href="#http参数污染">#</a></h4>
+<p>比如双参数</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#f92672">?</span>id <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&amp;</span> id <span style="color:#f92672">=</span> <span style="color:#66d9ef">and</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>有些架构会将两个拼接在一起，单独任何一个都没有问题，拼在一起就有问题了，这种的话要看后端的业务逻辑</p>
+<h4 id="http09">HTTP/0.9<a hidden class="anchor" aria-hidden="true" href="#http09">#</a></h4>
+<p>在HTTP/0.9中是没有响应头的</p>
+<h4 id="利用chuncked构造content-length为0">利用chuncked构造content-length为0<a hidden class="anchor" aria-hidden="true" href="#利用chuncked构造content-length为0">#</a></h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-http" data-lang="http"><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">Content-Length:0
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">Transfer-Encoding: chuncked
+</span></span></span></code></pre></div><p>两个同时出现一般会报错，如果像上面这样的话，body部分可以随便写，不会被过滤</p>
+<h4 id="加入中文字符">加入中文字符<a hidden class="anchor" aria-hidden="true" href="#加入中文字符">#</a></h4>
+<p>针对于特殊框架，会被替换为空</p>
+<h4 id="http方法构造">HTTP方法构造<a hidden class="anchor" aria-hidden="true" href="#http方法构造">#</a></h4>
+<p>使用一些存在的，常用HEAD</p>
+<h4 id="添加xff头">添加XFF头<a hidden class="anchor" aria-hidden="true" href="#添加xff头">#</a></h4>
+<p>127.0.0.1或者localhost</p>
+<p>理论可行，需要看网络架构</p>
+<h2 id="四总结">四、总结<a hidden class="anchor" aria-hidden="true" href="#四总结">#</a></h2>
+<p>以上这些技巧是根据原理、实践所得，参考了网上部分文章总结所得，WAF绕过并没有固定的模式，在黑盒情况下甚至你可以将所有技巧同时运用以达到目的，总之，要在不断的尝试中去绕过，然后再通过“控制变量”法去探测到底是哪一种方法奏效，以达到“通杀”的目标。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blog/tiangongarticle038/">
+    <span class="title">« 上一页</span>
+    <br>
+    <span>Python Web 内存马多框架植入技术详解</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blog/tiangongarticle004/">
+    <span class="title">下一页 »</span>
+    <br>
+    <span>伪随机数问题浅析</span>
+  </a>
+</nav>
+
+
+
+
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© <a href="https://poc.qianxin.com/home">天工实验室</a></span>
+        
+
+    
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
