@@ -6,7 +6,6 @@ author: mimi
 tags: [Microsoft, Windows, Race Condition]
 ---
 
-# Windows内核竞态条件漏洞研究
 
 ## 一、研究背景
 

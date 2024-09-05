@@ -6,7 +6,6 @@ author: crumbledwall
 tags: [Java, JDBC, JNDI]
 ---
 
-# JDBC Attack 与高版本 JDK 下的 JNDI Bypass
 
 ## 一、前言
 

@@ -6,7 +6,6 @@ author: hongzhenhao
 tags: [Windows, Hypervisor, Kernel, Debug]
 ---
 
-# Windows hypervisor&内核调试的几种常见/不常见方法
 
 ## 一、前言
 

@@ -6,7 +6,6 @@ author: hongzhenhao
 tags: [Microsoft, Hyper-V, TPM]
 ---
 
-# Microsoft Hyper-V 虚拟 TPM 设备漏洞分析
 
 ## 一、漏洞描述
 

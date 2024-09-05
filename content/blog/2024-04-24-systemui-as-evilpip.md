@@ -6,7 +6,6 @@ author: mg1937
 tags: [SystemUI, Activity Hijack Attack, AHA, BlackHat]
 ---
 
-# SystemUI As EvilPiP: 针对现代移动设备的劫持攻击
 
 2024年4月19日，奇安信天工实验室安全研究员程为民，出席国际顶级信息安全会议BlackHat ASIA 2024，发表 **《SystemUI As EvilPiP: The Hijacking Attacks on Modern Mobile Devices》** 议题演讲。**议题披露了在SystemUI下隐藏了六年之久的新型攻击面，以及SystemServer中难以修复的设计缺陷**。
 

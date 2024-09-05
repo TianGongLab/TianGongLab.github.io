@@ -6,7 +6,6 @@ author: hongzhenhao
 tags: [Windows, Virtual Trust Levels, VTL, Isolated User Mode, IUM]
 ---
 
-# 深入解析Windows VTL机制 & IUM进程
 
 ## 一、前言
 

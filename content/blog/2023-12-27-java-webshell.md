@@ -6,7 +6,6 @@ author: yyhy
 tags: [Java WebShell, AI]
 ---
 
-# 从传统到 AI 探讨 Webshell 检测攻防对抗
 
 ## 一、前言
 

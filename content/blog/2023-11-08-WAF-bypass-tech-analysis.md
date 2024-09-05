@@ -6,7 +6,6 @@ author: ink
 tags: [WAF]
 ---
 
-# WAF防护绕过技巧分析
 
 ## 一、WAF介绍与分类
 

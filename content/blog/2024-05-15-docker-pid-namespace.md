@@ -6,7 +6,6 @@ author: clingcling
 tags: [Docker, namespace]
 ---
 
-# Docker 逃逸中被忽略的 pid namespace
 
 ## 一、背景
 

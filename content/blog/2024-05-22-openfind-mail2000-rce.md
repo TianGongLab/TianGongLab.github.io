@@ -6,7 +6,6 @@ author: noir
 tags: [Openfind, Mail Server]
 ---
 
-# Openfind Mail2000 认证前 RCE 漏洞分析
 
 ## 一、前言
 

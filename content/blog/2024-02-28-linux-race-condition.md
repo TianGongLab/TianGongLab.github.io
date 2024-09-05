@@ -6,7 +6,6 @@ author: lm0963
 tags: [Linux, Race Condition]
 ---
 
-# 关于Linux内核条件竞争的探讨
 
 ## 一、前言
 

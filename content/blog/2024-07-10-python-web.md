@@ -6,7 +6,6 @@ author: 4uuu
 tags: [Python, Web, 内存马]
 ---
 
-# Python Web 内存马多框架植入技术详解
 
 ## 一、前言
 

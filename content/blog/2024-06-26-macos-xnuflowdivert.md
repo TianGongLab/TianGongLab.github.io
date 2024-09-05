@@ -6,7 +6,6 @@ author: fmyy
 tags: [macOS, FlowDivert]
 ---
 
-# Apple 操作系统 - XNU 内核下 FlowDivert 网络协议漏洞分析
 
 ## 一、前言
 

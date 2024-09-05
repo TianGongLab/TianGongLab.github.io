@@ -6,7 +6,6 @@ author: fmyy
 tags: [macOS, TCC]
 ---
 
-# macOS 中四类 TCC BYPASS 绕过案例分析
 
 ## 一、前言
 

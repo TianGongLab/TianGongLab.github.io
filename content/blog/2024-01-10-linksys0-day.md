@@ -6,7 +6,6 @@ author: w00d
 tags: [破壳, Linksys, 0 day]
 ---
 
-# 破壳分析：Linksys设备多个0-day漏洞
 
 ## 一、前言
 

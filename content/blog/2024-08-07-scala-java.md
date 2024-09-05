@@ -6,7 +6,6 @@ author: falc0n_leo
 tags: [Scala, Java]
 ---
 
-# Scala代码审计之痛 -- Scala与Java的爱恨情仇
 
 ## 一、前言
 

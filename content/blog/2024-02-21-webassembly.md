@@ -6,7 +6,6 @@ author: ha1vk
 tags: [WebAssembly]
 ---
 
-# WebAssembly安全研究总结
 
 ## 一、前言
 

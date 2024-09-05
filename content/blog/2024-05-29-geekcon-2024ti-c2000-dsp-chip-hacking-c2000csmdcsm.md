@@ -6,7 +6,6 @@ author: ha1vk
 tags: [Texas Instruments, Digital Signal Processing, DSP, Chip, Code Security Module, CSM, Dual Code Security Module, DCSM, GeekCon]
 ---
 
-# 【GeekCon 2024】TI C2000 DSP Chip Hacking: 绕过德州仪器C2000芯片的CSM/DCSM安全保护机制
 
 5月26日，奇安信天工实验室安全研究员赵海，出席国际知名极客大会GEEKCON 2024 Singapore，发表 **《TI C2000 DSP Chip Hacking》** 议题演讲，现场展示并成功破解了使用德州仪器TMS320F28375D芯片开发的"安全U盘"，绕过CSM/DCSM保护机制读取其中存储的文件。
 

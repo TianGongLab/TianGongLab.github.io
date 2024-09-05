@@ -6,7 +6,6 @@ author: noir
 tags: [IoT, Authentication Bypass]
 ---
 
-# IoT 设备中的认证绕过漏洞分析
 
 ## 一、前言
 

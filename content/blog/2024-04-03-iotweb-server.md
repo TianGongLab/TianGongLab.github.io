@@ -6,7 +6,6 @@ author: OneShell
 tags: [Web Server, GoAhead, mini_httpd, CVE]
 ---
 
-# IoT 设备常见 Web Server 漏洞挖掘思路分析
 
 ## 一、前言
 

@@ -6,7 +6,6 @@ author: b4tm4n
 tags: [Ghidra Plug-in]
 ---
 
-# Ghidra脚本编写：从IR到反编译C
 
 ## 一、前言
 

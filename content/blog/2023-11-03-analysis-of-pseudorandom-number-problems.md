@@ -6,7 +6,6 @@ author: wangyao04
 tags: [Cryptography]
 ---
 
-# 伪随机数问题浅析
 
 ## 0x01 前言
 

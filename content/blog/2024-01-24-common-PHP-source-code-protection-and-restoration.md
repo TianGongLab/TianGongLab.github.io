@@ -6,7 +6,6 @@ author: 4uuu
 tags: [PHP]
 ---
 
-# 常见 PHP 源码保护与还原
 
 ## 一、前言
 

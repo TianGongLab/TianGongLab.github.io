@@ -6,7 +6,6 @@ author: l1nk
 tags: [Vulnerability Pattern]
 ---
 
-# Server as Client 漏洞模型
 
 ## 一、前言
 
