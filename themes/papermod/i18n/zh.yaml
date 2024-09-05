@@ -37,3 +37,6 @@
 
 - id: Blogs
   translation: "博客"
+
+- id: Docs
+  translation: "文档"
