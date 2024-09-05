@@ -29,17 +29,18 @@
     {{- end }}
   </header>
 
-  {{ $authorKey := .Params.author }}
-  {{ with index site.Data.authors $authorKey }}
-    <div class="author">
-      <div class="author_avatar">
-        <img src="{{ .avatar}}" alt="{{ .name }}">
+  {{ if .Params.author }}
+    {{ with index site.Data.authors .Params.author }}
+      <div class="author">
+        <div class="author_avatar">
+          <img src="{{ .avatar}}" alt="{{ .name }}">
+        </div>
+        <div class="author_info">
+          <span class="author_id">{{ .name }}</span>
+          <p class="author_description">{{ .title }}</p>
+        </div>
       </div>
-      <div class="author_info">
-        <span class="author_id">{{ .name }}</span>
-        <p class="author_description">{{ .title }}</p>
-      </div>
-    </div>
+    {{end}}
   {{end}}
 
   {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
@@ -62,6 +63,9 @@
   </div>
   {{- end }}
 
+
+  {{partial "comments.html" }}
+
   <footer class="post-footer">
     {{- if (.Param "ShowPostNavLinks") }}
     {{- partial "post_nav_links.html" . }}
@@ -70,10 +74,6 @@
     {{- partial "share_icons.html" . -}}
     {{- end }}
   </footer>
-
-  {{- if (.Param "comments") }}
-  {{- partial "comments.html" . }}
-  {{- end }}
 </article>
 
 {{- end }}{{/* end main */}}
