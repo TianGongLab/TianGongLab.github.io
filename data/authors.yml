@@ -142,3 +142,8 @@ zhz:
   name: S1duku
   avatar: /authors/S1duku.jpg
   title: GeekCon2023 参赛选手
+
+s0duku:
+  name: s0duku
+  avatar: /authors/s0duku.png
+  title: 天工实验室安全研究员，GeekCon2023 选手，专注于逆向工程，二进制安全
