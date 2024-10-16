@@ -147,3 +147,18 @@ s0duku:
   name: s0duku
   avatar: /authors/s0duku.png
   title: 天工实验室安全研究员，GeekCon2023 选手，专注于逆向工程，二进制安全
+
+kemooo:
+  name: kemooo
+  avatar: /authors/kemooo.jpg
+  title: 奇安信天工实验室安全研究员
+
+Anansi:
+  name: Anansi
+  avatar: /authors/Anansi.jpg
+  title: 天工实验室安全研究员，研究领域：Chrome浏览器漏洞研究
+
+z1r0:
+  name: z1r0
+  avatar: /authors/z1r0.jpg
+  title: 天工实验室安全研究员，研究领域：二进制漏洞挖掘
