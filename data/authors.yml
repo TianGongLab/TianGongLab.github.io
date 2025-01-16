@@ -23,7 +23,7 @@ ink:
   avatar: /authors/ink.jpg
   title: 专注于代码审计、漏洞挖掘及免杀对抗领域
 
-wanghaozhe:
+pwnht:
   name: pwnht
   avatar: /authors/pwnht.jpg
   title: 天工实验室安全研究员，主攻利用二进制静态分析方法挖掘漏洞
