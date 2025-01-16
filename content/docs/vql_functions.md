@@ -1,5 +1,5 @@
 ---
-slug: vql_functions
+slug: vql_function
 title: "VQL 函数功能描述"
 date: 2023-10-17
 weight: 3
