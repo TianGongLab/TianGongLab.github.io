@@ -1,7 +1,7 @@
 ---
 slug: tiangongarticle62
 date: 2025-01-22
-title: 从XStream浅析反序列化Gadget挖掘思路
+title: Java XStream 反序列化：Gadget 挖掘思路分享
 author: yyhy
 tags: ["java","xstream"]
 ---
