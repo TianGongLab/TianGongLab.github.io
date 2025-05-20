@@ -183,3 +183,9 @@ tiangong:
   name: 天工实验室
   avatar: /authors/tiangong.png
   title: 奇安信天工实验室，专注于漏洞攻防领域技术研究，面向互联网基础设施，以操作系统平台、基础软件应用、网络通信协议、关键网络设备为目标，研究漏洞挖掘、利用、检测等关键技术。
+
+
+finley:
+  name: finley
+  avatar: /authors/finley.jpg
+  title: 天工实验室安全研究员，专注于攻防对抗技术研究
